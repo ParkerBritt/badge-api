@@ -1,0 +1,9 @@
+services:
+  api:
+    build: .
+    container_name: badge-api
+    environment:
+      PORT: 8000
+    ports:
+      - '8005:8000'
+
