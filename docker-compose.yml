@@ -6,4 +6,7 @@ services:
       PORT: 8000
     ports:
       - '8005:8000'
+    volumes:
+      - ./src:/app/src
+      - ./icons:/app/icons
 
