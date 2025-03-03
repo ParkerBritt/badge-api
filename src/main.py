@@ -1,5 +1,6 @@
 from fastapi import FastAPI, Response
 import colorsys, os
+from typing import Optional
 
 app = FastAPI()
 
@@ -12,24 +13,26 @@ icons = {"maya" : "maya.svg",
          "linux" : "linux.svg",
          "fedora_linux" : "fedora_linux.svg",
          "rocky_linux" : "rocky_linux.svg",
+         "hyprland" : "hyprland.svg"
          }
 
 
 def get_char_width(_string: str):
-    return len(_string)*7.83
-    # WIDTH_DICT={'0': 9, '1': 7, '2': 9, '3': 10, '4': 10, '5': 9, '6': 9, '7': 9, '8': 9, '9': 9, 'a': 8, 'b': 9, 'c': 8, 'd': 9, 'e': 9, 'f': 6, 'g': 9, 'h': 9, 'i': 4, 'j': 5, 'k': 8, 'l': 4, 'm': 13, 'n': 9, 'o': 9, 'p': 9, 'q': 9, 'r': 6, 's': 8, 't': 5, 'u': 9, 'v': 8, 'w': 12, 'x': 8, 'y': 8, 'z': 8, 'A': 10, 'B': 10, 'C': 11, 'D': 11, 'E': 9, 'F': 9, 'G': 11, 'H': 11, 'I': 4, 'J': 8, 'K': 10, 'L': 8, 'M': 13, 'N': 11, 'O': 11, 'P': 10, 'Q': 11, 'R': 10, 'S': 10, 'T': 10, 'U': 11, 'V': 10, 'W': 14, 'X': 10, 'Y': 10, 'Z': 9, '!': 4, '"': 6, '#': 10, '$': 10, '%': 12, '&': 10, "'": 3, '(': 5, ')': 5, '*': 8, '+': 10, ',': 4, '-': 7, '.': 4, '/': 5, ':': 4, ';': 4, '<': 10, '=': 10, '>': 10, '?': 8, '@': 14, '[': 5, '\\': 5, ']': 5, '^': 7, '_': 8, '`': 7, '{': 5, '|': 5, '}': 5, '~': 10, ' ': 4}
-    # width = 0
-    # for char in _string:
-    #     width+=WIDTH_DICT[char]
-
-    # return width
+    return len(_string)*7.83 # using mono font
 
 def get_icon(icon_name: str) -> str:
     icon_name = icon_name.lower()
     if(icon_name not in icons):
+        print(f"WARNING: invalid icon name '{icon_name}'")
         return ""
     file_name = icons[icon_name]
-    with open(os.path.join(os.path.dirname(__file__), "../icons", file_name), "rt") as file:
+    icon_path = os.path.join(os.path.dirname(__file__), "../icons", file_name)
+    if not os.path.exists(icon_path):
+        print(f"WARNING: invalid path '{icon_path}'")
+        return ""
+    else:
+        print(f"path valid: {icon_path}")
+    with open(icon_path, "rt") as file:
         return file.read()
 
 
@@ -81,11 +84,9 @@ async def generate_svg(label: str = "", icon: str = "", color: str = "#FF4713"):
     bg_hex = "#"+color
 
     bg_alt_hsv = colorsys.rgb_to_hsv(*hex_to_rgb(bg_hex))
-    bg_alt_hsv = (bg_alt_hsv[0], bg_alt_hsv[1], max(bg_alt_hsv[2]-20,0))
+    bg_alt_hsv = (bg_alt_hsv[0], bg_alt_hsv[1], max(bg_alt_hsv[2]*0.75,0))
 
     bg_alt_hex = rgb_to_hex(colorsys.hsv_to_rgb(*bg_alt_hsv))
-    # bg_alt_hex = bg_hex
-    # bg_alt_hex = "#006E95"
 
     svg=f"""
 <svg
