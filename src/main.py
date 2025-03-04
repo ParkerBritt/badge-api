@@ -60,7 +60,7 @@ def rgb_to_hex(rgb):
 
 
 @app.get("/badge")
-async def generate_svg(label: str = "", icon: str = "", color: str = "#FF4713"):
+async def generate_svg(label: str = "", icon: str = "", color: str = "FF4713"):
 
     # generate image
     svg = build_standard_badge(label, icon, color)
@@ -70,7 +70,7 @@ async def generate_svg(label: str = "", icon: str = "", color: str = "#FF4713"):
     response.headers["Cache-Control"] = "public, max-age=86400"
     return response
 
-def build_standard_badge(label: str = "", icon: str = "", color: str = "#FF4713") -> str:
+def build_standard_badge(label: str = "", icon: str = "", color: str = "FF4713") -> str:
     label = label.upper()
     label_width = get_char_width(label)
     char_height = 1
