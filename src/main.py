@@ -25,7 +25,6 @@ def get_char_width(_string: str):
 
 def get_icon(icon_name: str) -> str:
     icon_name = icon_name.lower()
-    print(all_icons.names())
     if(icon_name not in all_icons.names()):
         print(f"WARNING: invalid icon name '{icon_name}'")
         return ""
@@ -76,7 +75,11 @@ def rgb_to_hex(rgb):
 
 @app.get("/badge")
 async def generate_svg(label: str = "", icon: str = "", color: str = "#FF4713"):
+
+    # generate image
     svg = build_standard_badge(label, icon, color)
+
+    # return response
     return Response(content=svg, media_type="image/svg+xml")
 
 def build_standard_badge(label: str = "", icon: str = "", color: str = "#FF4713") -> str:
