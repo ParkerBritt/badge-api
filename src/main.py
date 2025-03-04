@@ -1,6 +1,8 @@
 from fastapi import FastAPI, Response
+import re
 import colorsys, os
 from typing import Optional
+from simplepycons import all_icons
 
 app = FastAPI()
 
@@ -13,7 +15,8 @@ icons = {"maya" : "maya.svg",
          "linux" : "linux.svg",
          "fedora_linux" : "fedora_linux.svg",
          "rocky_linux" : "rocky_linux.svg",
-         "hyprland" : "hyprland.svg"
+         "hyprland" : "hyprland.svg",
+         "nixos" : "nixos.svg",
          }
 
 
@@ -22,18 +25,21 @@ def get_char_width(_string: str):
 
 def get_icon(icon_name: str) -> str:
     icon_name = icon_name.lower()
-    if(icon_name not in icons):
+    print(all_icons.names())
+    if(icon_name not in all_icons.names()):
         print(f"WARNING: invalid icon name '{icon_name}'")
         return ""
-    file_name = icons[icon_name]
-    icon_path = os.path.join(os.path.dirname(__file__), "../icons", file_name)
-    if not os.path.exists(icon_path):
-        print(f"WARNING: invalid path '{icon_path}'")
+
+    # isolate path
+    svg_str = all_icons[icon_name].raw_svg
+    svg_path_match = re.search(r"<path[\S\s]*\/>", svg_str)
+    if not svg_path_match:
+        print(f"WARNING: could not parse svg for icon '{icon_name}'")
         return ""
-    else:
-        print(f"path valid: {icon_path}")
-    with open(icon_path, "rt") as file:
-        return file.read()
+
+    svg_path = svg_path_match.group()
+    return svg_path
+
 
 
 def hex_to_rgb(hex_color):
@@ -70,6 +76,10 @@ def rgb_to_hex(rgb):
 
 @app.get("/badge")
 async def generate_svg(label: str = "", icon: str = "", color: str = "#FF4713"):
+    svg = build_standard_badge(label, icon, color)
+    return Response(content=svg, media_type="image/svg+xml")
+
+def build_standard_badge(label: str = "", icon: str = "", color: str = "#FF4713") -> str:
     label = label.upper()
     label_width = get_char_width(label)
     char_height = 1
@@ -140,4 +150,6 @@ async def generate_svg(label: str = "", icon: str = "", color: str = "#FF4713"):
     </text>
 </svg>
 """
-    return Response(content=svg, media_type="image/svg+xml")
+
+    return svg
+
