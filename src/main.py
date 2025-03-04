@@ -6,20 +6,6 @@ from simplepycons import all_icons
 
 app = FastAPI()
 
-icons = {"maya" : "maya.svg",
-         "c" : "c.svg",
-         "cpp": "cpp.svg",
-         "houdini" : "houdini.svg",
-         "python" : "python.svg",
-         "fastapi" : "fastapi.svg",
-         "linux" : "linux.svg",
-         "fedora_linux" : "fedora_linux.svg",
-         "rocky_linux" : "rocky_linux.svg",
-         "hyprland" : "hyprland.svg",
-         "nixos" : "nixos.svg",
-         }
-
-
 def get_char_width(_string: str):
     return len(_string)*7.83 # using mono font
 
@@ -82,7 +68,7 @@ async def generate_svg(label: str = "", icon: str = "", color: str = "#FF4713"):
     # return response
     response = Response(content=svg, media_type="image/svg+xml")
     response.headers["Cache-Control"] = "public, max-age=86400"
-    return 
+    return response
 
 def build_standard_badge(label: str = "", icon: str = "", color: str = "#FF4713") -> str:
     label = label.upper()
