@@ -80,7 +80,9 @@ async def generate_svg(label: str = "", icon: str = "", color: str = "#FF4713"):
     svg = build_standard_badge(label, icon, color)
 
     # return response
-    return Response(content=svg, media_type="image/svg+xml")
+    response = Response(content=svg, media_type="image/svg+xml")
+    response.headers["Cache-Control"] = "public, max-age=86400"
+    return 
 
 def build_standard_badge(label: str = "", icon: str = "", color: str = "#FF4713") -> str:
     label = label.upper()
