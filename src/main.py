@@ -10,6 +10,16 @@ def get_char_width(_string: str):
     return len(_string)*7.83 # using mono font
 
 def get_icon(icon_name: str) -> str:
+    """
+    Fetch the svg path for the desired simple icon
+
+    Args:
+        icon_name (str): The string name for the desired icon
+
+    Returns:
+        string: svg path for the desired simple icon
+    """
+
     icon_name = icon_name.lower()
     if(icon_name not in all_icons.names()):
         print(f"WARNING: invalid icon name '{icon_name}'")
