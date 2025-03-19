@@ -11,3 +11,20 @@ I created this project because I wasn't satisfied with the level of control I ha
 An example of the badges created can be seen above.
 
 Any simple [simpleicon](https://simpleicons.org) should be compatible.
+
+### Parameters
+
+- **`label`** (optional) – The text displayed on the badge.  
+  - Example: `label=Python`
+- **`icon`** (optional) – The icon displayed next to the label.  
+  - Example: `icon=python`  
+  - Compatible with any [SimpleIcons](https://simpleicons.org/) name.
+- **`color`** (optional) – The background color of the badge in hex format (without `#`).  
+  - Example: `color=FF4713` (Bright Orange)
+
+### Example Usage
+```
+https://parkerbritt.com/badge?label=python&icon=python&color=3776AB
+```
+will give you<br>
+<img src="https://parkerbritt.com/badge?label=python&icon=python&color=3776AB">
