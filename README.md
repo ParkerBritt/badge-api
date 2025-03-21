@@ -14,17 +14,20 @@ Any simple [simpleicon](https://simpleicons.org) should be compatible.
 
 ### Parameters
 
-- **`label`** (optional) – The text displayed on the badge.  
-  - Example: `label=Python`
-- **`icon`** (optional) – The icon displayed next to the label.  
-  - Example: `icon=python`  
-  - Compatible with any [SimpleIcons](https://simpleicons.org/) name.
-- **`color`** (optional) – The background color of the badge in hex format (without `#`).  
-  - Example: `color=FF4713` (Bright Orange)
+| **Parameter** | **Description** | **Example** |
+|---------------|-----------------|-------------|
+| **`label`**   | The text displayed on the badge (optional). | `label=Python` |
+| **`icon`**    | The icon displayed next to the label (optional). Compatible with any SimpleIcons name. | `icon=python` |
+| **`color`**   | The background color of the badge in hex format (optional, without `#`). | `color=FF4713` |
+
+
 
 ### Example Usage
-```
-https://parkerbritt.com/badge?label=python&icon=python&color=3776AB
-```
-will give you<br>
-<img src="https://parkerbritt.com/badge?label=python&icon=python&color=3776AB">
+<code>https:\/\/domain.com\/badge?label=python&icon=python&color=3776AB</code>
+<img src="https://parkerbritt.com/badge?label=python&icon=python&color=3776AB" align="right">
+
+<code>https:\/\/domain.com\/badge?label=C%2B%2B&icon=cpp&color=00599C</code>
+<img src="https://parkerbritt.com/badge?label=C%2B%2B&icon=cpp&color=00599C" align="right">
+
+<code>https:\/\/domain.com\/badge?label=houdini&icon=houdini&color=FF4713</code>
+<img src="https://parkerbritt.com/badge?label=houdini&icon=houdini&color=FF4713" align="right">
