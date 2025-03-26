@@ -8,7 +8,6 @@
 My personal web API for serving badges.
 Currently they display icons and labels, but I plan to expand the functionality in the future to display jenkins status, and display projects.
 I created this project because I wasn't satisfied with the level of control I had with existing solutions.
-An example of the badges created can be seen above.
 
 ### Parameters
 
