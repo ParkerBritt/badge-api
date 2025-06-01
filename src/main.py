@@ -3,6 +3,7 @@ import re
 import colorsys, os
 from typing import Optional
 from simplepycons import all_icons
+import requests
 
 app = FastAPI()
 
@@ -68,29 +69,72 @@ def rgb_to_hex(rgb):
     return "#{:02X}{:02X}{:02X}".format(*map(int, rgb))
 
 
+@app.get("/jenkins")
+async def jenkins_badge(job: str = "", build: str = "lastBuild"):
 
-@app.get("/badge")
-async def generate_svg(label: str = "", icon: str = "", color: str = "FF4713"):
+    print(f"fetching job {job} number {build}")
+
+    jenkins_ip = "192.168.0.133"
+    jenkins_port = "8081"
+    request_str = f"http://{jenkins_ip}:{jenkins_port}/job/{job}/{build}/api/json?pretty=true"
+
+    print(f"making request: {request_str}")
+    request = requests.get(request_str)
+
+    job_data = request.json()
+
+    job_status = job_data["result"]
+    print("job status: {job_status}")
+
+
+    status_names = {
+        "SUCCESS":"passing",
+    }
+
+    status_text = status_names.get(job_status, "NULL")
 
     # generate image
-    svg = build_standard_badge(label, icon, color)
+    svg = build_standard_badge(prefix="build ", label=status_text, color="2e3846")
 
     # return response
     response = Response(content=svg, media_type="image/svg+xml")
     response.headers["Cache-Control"] = "public, max-age=86400"
     return response
 
-def build_standard_badge(label: str = "", icon: str = "", color: str = "FF4713") -> str:
-    label = label.upper()
+@app.get("/badge")
+async def badge(label: str = "", icon: str = "", color: str = "FF4713"):
+
+    # generate image
+    svg = build_standard_badge(label.upper(), icon, color)
+
+    # return response
+    response = Response(content=svg, media_type="image/svg+xml")
+    response.headers["Cache-Control"] = "public, max-age=86400"
+    return response
+
+def build_standard_badge(prefix: str = "", label: str = "", icon: str = "", color: str = "FF4713") -> str:
+    display_text = prefix+label
+
+    text_width = get_char_width(display_text)
     label_width = get_char_width(label)
+
+        
+
     char_height = 1
     rect_height = 28
     icon_width = 14
+    left_padding = 9
+
     icon_svg = get_icon(icon)
     is_icon = icon_svg == ""
-    left_padding = 9
     text_x = (left_padding+icon_width)*(not is_icon)+left_padding
-    rect_width = text_x+label_width+left_padding
+    rect_width = text_x+text_width+left_padding
+
+    if(prefix!=""):
+        prefix_padding = 9
+        rect_width += prefix_padding
+
+    text_rect_width = label_width+left_padding*2
 
     bg_hex = "#"+color
 
@@ -130,6 +174,7 @@ def build_standard_badge(label: str = "", icon: str = "", color: str = "FF4713")
     </defs>
 
     <rect x="0" y="0" width="{rect_width}" height="{rect_height}" fill="url(#bg_grad)" rx="8"/>
+    <rect x="{rect_width-text_rect_width}" width="{text_rect_width}" height="{rect_height}" fill="#44cc11" rx="8"/>
   
   
     <g transform="translate({left_padding},{rect_height/2-icon_width/2})" fill="white" filter="url(#drop_shadow_1)">  
@@ -137,8 +182,22 @@ def build_standard_badge(label: str = "", icon: str = "", color: str = "FF4713")
             {icon_svg}
         </svg>
     </g>
+
     <text
         x="{text_x}"
+        y="{rect_height/2+char_height}"
+        font-family="monospace,Liberation Mono,Consolas,Menlo,Monaco,Lucida Console,DejaVu Sans Mono,Bitstream Vera Sans Mono,Courier New,serif"
+        font-size="13"
+        fill="white"
+        dominant-baseline="middle"
+        text-rendering="geometricPrecision"
+        font-weight="bold"
+    >
+        {prefix}
+    </text>
+
+    <text
+        x="{rect_width-text_rect_width+left_padding}"
         y="{rect_height/2+char_height}"
         font-family="monospace,Liberation Mono,Consolas,Menlo,Monaco,Lucida Console,DejaVu Sans Mono,Bitstream Vera Sans Mono,Courier New,serif"
         font-size="13"
