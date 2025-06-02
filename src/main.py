@@ -89,12 +89,19 @@ async def jenkins_badge(job: str = "", build: str = "lastBuild"):
 
     status_names = {
         "SUCCESS":"passing",
+        "FAILURE":"failing",
+    }
+
+    status_colors = {
+        "SUCCESS":"44cc11",
+        "FAILURE":"ff3e3e",
     }
 
     status_text = status_names.get(job_status, "NULL")
+    status_color = status_colors.get(job_status, "2e3846")
 
     # generate image
-    svg = build_standard_badge(prefix="build ", label=status_text, color="2e3846")
+    svg = build_standard_badge(prefix="build ", label=status_text, color="2e3846", label_color=status_color)
 
     # return response
     response = Response(content=svg, media_type="image/svg+xml")
@@ -112,7 +119,14 @@ async def badge(label: str = "", icon: str = "", color: str = "FF4713"):
     response.headers["Cache-Control"] = "public, max-age=86400"
     return response
 
-def build_standard_badge(prefix: str = "", label: str = "", icon: str = "", color: str = "FF4713") -> str:
+def build_standard_badge(
+        prefix: str = "", 
+        label: str = "",
+        icon: str = "",
+        color: str = "FF4713",
+        label_color: str = "FF4713"
+    ) -> str:
+
     display_text = prefix+label
 
     text_width = get_char_width(display_text)
@@ -174,7 +188,7 @@ def build_standard_badge(prefix: str = "", label: str = "", icon: str = "", colo
     </defs>
 
     <rect x="0" y="0" width="{rect_width}" height="{rect_height}" fill="url(#bg_grad)" rx="8"/>
-    <rect x="{rect_width-text_rect_width}" width="{text_rect_width}" height="{rect_height}" fill="#44cc11" rx="8"/>
+    <rect x="{rect_width-text_rect_width}" width="{text_rect_width}" height="{rect_height}" fill="#{label_color}" rx="8"/>
   
   
     <g transform="translate({left_padding},{rect_height/2-icon_width/2})" fill="white" filter="url(#drop_shadow_1)">  
