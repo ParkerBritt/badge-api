@@ -82,6 +82,8 @@ async def jenkins_badge(job: str = "", build: str = "lastBuild"):
     request = requests.get(request_str)
 
     job_data = request.json()
+    if("result" not in job_data):
+        print("ERROR: no result in jenkins json")
 
     job_status = job_data["result"]
     print("job status: {job_status}")
@@ -112,7 +114,7 @@ async def jenkins_badge(job: str = "", build: str = "lastBuild"):
 async def badge(label: str = "", icon: str = "", color: str = "FF4713"):
 
     # generate image
-    svg = build_standard_badge(label.upper(), icon, color)
+    svg = build_standard_badge(label=label.upper(), icon=icon, color=color)
 
     # return response
     response = Response(content=svg, media_type="image/svg+xml")
@@ -144,7 +146,9 @@ def build_standard_badge(
     text_x = (left_padding+icon_width)*(not is_icon)+left_padding
     rect_width = text_x+text_width+left_padding
 
-    if(prefix!=""):
+    has_label = prefix!=""
+
+    if(has_label):
         prefix_padding = 9
         rect_width += prefix_padding
 
@@ -157,6 +161,7 @@ def build_standard_badge(
 
     bg_alt_hex = rgb_to_hex(colorsys.hsv_to_rgb(*bg_alt_hsv))
 
+    # header
     svg=f"""
 <svg
     width="{rect_width}"
@@ -164,6 +169,10 @@ def build_standard_badge(
     xmlns="http://www.w3.org/2000/svg"
     xmlns:xlink="http://www.w3.org/1999/xlink"
 >
+"""
+
+    # gradient
+    svg += f"""
     <defs>
         <linearGradient id="bg_grad" x1="20%" y1="0%" x2="80%" y2="100%">
             <stop offset="0%" stop-color="{bg_hex}" />
@@ -187,29 +196,52 @@ def build_standard_badge(
         </filter>
     </defs>
 
+"""
+
+    # main background
+    svg += f"""
     <rect x="0" y="0" width="{rect_width}" height="{rect_height}" fill="url(#bg_grad)" rx="8"/>
-    <rect x="{rect_width-text_rect_width}" width="{text_rect_width}" height="{rect_height}" fill="#{label_color}" rx="8"/>
+"""
+
+    # label background
+    # only if there's a prefix
+    if(has_label):
+        svg += f"""
+        <rect x="{rect_width-text_rect_width}" width="{text_rect_width}" height="{rect_height}" fill="#{label_color}" rx="8"/>
   
   
+"""
+
+    # icon
+    svg += f"""
     <g transform="translate({left_padding},{rect_height/2-icon_width/2})" fill="white" filter="url(#drop_shadow_1)">  
         <svg role="img" width="{icon_width}" height="{icon_width}" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
             {icon_svg}
         </svg>
     </g>
 
-    <text
-        x="{text_x}"
-        y="{rect_height/2+char_height}"
-        font-family="monospace,Liberation Mono,Consolas,Menlo,Monaco,Lucida Console,DejaVu Sans Mono,Bitstream Vera Sans Mono,Courier New,serif"
-        font-size="13"
-        fill="white"
-        dominant-baseline="middle"
-        text-rendering="geometricPrecision"
-        font-weight="bold"
-    >
-        {prefix}
-    </text>
+"""
 
+    # prefix text
+    if(has_label):
+        svg += f"""
+        <text
+            x="{text_x}"
+            y="{rect_height/2+char_height}"
+            font-family="monospace,Liberation Mono,Consolas,Menlo,Monaco,Lucida Console,DejaVu Sans Mono,Bitstream Vera Sans Mono,Courier New,serif"
+            font-size="13"
+            fill="white"
+            dominant-baseline="middle"
+            text-rendering="geometricPrecision"
+            font-weight="bold"
+        >
+            {prefix}
+        </text>
+
+    """
+
+    # label text
+    svg += f"""
     <text
         x="{rect_width-text_rect_width+left_padding}"
         y="{rect_height/2+char_height}"
@@ -222,6 +254,10 @@ def build_standard_badge(
     >
         {label}
     </text>
+"""
+
+    # footer
+    svg += """
 </svg>
 """
 
