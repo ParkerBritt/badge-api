@@ -1,4 +1,5 @@
 from fastapi import FastAPI, Response
+import os
 import re
 import colorsys, os
 from typing import Optional
@@ -74,14 +75,26 @@ async def jenkins_badge(job: str = "", build: str = "lastBuild"):
 
     print(f"fetching job {job} number {build}")
 
-    jenkins_ip = "192.168.0.133"
-    jenkins_port = "8081"
+    jenkins_ip = os.getenv("JENKINS_IP", "0.0.0.0")
+    jenkins_port = os.getenv("JENKINS_PORT", "80")
     request_str = f"http://{jenkins_ip}:{jenkins_port}/job/{job}/{build}/api/json?pretty=true"
 
     print(f"making request: {request_str}")
-    request = requests.get(request_str)
+    try:
+        jenkins_response = requests.get(request_str)
+        jenkins_response.raise_for_status()
+    except requests.exceptions.HTTPError as http_err:
+        print(f"HTTP error occurred: {http_err}")
+        return
+    except requests.exceptions.ConnectionError as conn_err:
+        print(f"Connection error occurred: {conn_err}")
+        return
+    except requests.exceptions.Timeout as timeout_err:
+        print(f"Request timed out: {timeout_err}")
+        return
+    
 
-    job_data = request.json()
+    job_data = jenkins_response.json()
     if("result" not in job_data):
         print("ERROR: no result in jenkins json")
 
