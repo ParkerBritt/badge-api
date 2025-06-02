@@ -9,4 +9,7 @@ services:
     volumes:
       - ./src:/app/src
       - ./icons:/app/icons
+    env_file:
+      - path: ./conf.env
+        required: false
 
