@@ -70,7 +70,7 @@ def rgb_to_hex(rgb):
     return "#{:02X}{:02X}{:02X}".format(*map(int, rgb))
 
 
-@app.get("/jenkins")
+@app.get("/jenkins_badge")
 async def jenkins_badge(job: str = "", build: str = "lastBuild"):
 
     print(f"fetching job {job} number {build}")
