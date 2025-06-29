@@ -120,7 +120,7 @@ async def jenkins_badge(job: str = "", build: str = "lastBuild"):
 
     # return response
     response = Response(content=svg, media_type="image/svg+xml")
-    response.headers["Cache-Control"] = "public, max-age=86400"
+    response.headers["Cache-Control"] = "public, max-age=3600"
     return response
 
 @app.get("/badge")
