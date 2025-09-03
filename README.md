@@ -1,8 +1,8 @@
 <h1 align="center">Badge Api</h1>
 
 <div align="center">
-  <a href="https://github.com/ParkerBritt?tab=repositories&q=&type=&language=python&sort="><img src="https://parkerbritt.com/badge?label=python&icon=python&color=3776AB"></a>
-   <a href="https://github.com/FastAPI/FastAPI"><img src="https://parkerbritt.com/badge?label=FastAPI&icon=fastapi&color=009688"></a>
+  <a href="https://github.com/ParkerBritt?tab=repositories&q=&type=&language=python&sort="><img src="https://cards.parkerbritt.com/badge?label=python&icon=python&color=3776AB"></a>
+   <a href="https://github.com/FastAPI/FastAPI"><img src="https://cards.parkerbritt.com/badge?label=FastAPI&icon=fastapi&color=009688"></a>
 </div>
 
 My personal web API for serving badges.
@@ -21,10 +21,11 @@ I created this project because I wasn't satisfied with the level of control I ha
 
 ### Example Usage
 <code>https:\/\/domain.com\/badge?label=python&icon=python&color=3776AB</code>
-<img src="https://parkerbritt.com/badge?label=python&icon=python&color=3776AB" align="right">
+<img src="https://cards.parkerbritt.com/badge?label=python&icon=python&color=3776AB" align="right">
 
 <code>https:\/\/domain.com\/badge?label=C%2B%2B&icon=cpp&color=00599C</code>
-<img src="https://parkerbritt.com/badge?label=C%2B%2B&icon=cpp&color=00599C" align="right">
+<img src="https://cards.parkerbritt.com/badge?label=C%2B%2B&icon=cpp&color=00599C" align="right">
 
 <code>https:\/\/domain.com\/badge?label=houdini&icon=houdini&color=FF4713</code>
-<img src="https://parkerbritt.com/badge?label=houdini&icon=houdini&color=FF4713" align="right">
+<img src="https://cards.parkerbritt.com/badge?label=houdini&icon=houdini&color=FF4713" align="right">
+
