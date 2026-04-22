@@ -4,7 +4,7 @@ import re
 import colorsys, os
 from typing import Optional
 from simplepycons import all_icons
-import requests
+import httpx
 
 app = FastAPI()
 
@@ -93,9 +93,10 @@ async def jenkins_badge(job: str = "", build: str = "lastBuild"):
 
     print(f"making request: {request_str}")
     try:
-        jenkins_response = requests.get(request_str)
-        jenkins_response.raise_for_status()
-    
+        async with httpx.AsyncClient() as client:
+            jenkins_response = await client.get(request_str, timeout=5)
+            jenkins_response.raise_for_status()
+
         job_data = jenkins_response.json()
         if("result" not in job_data):
             print("ERROR: no result in jenkins json")
@@ -103,11 +104,11 @@ async def jenkins_badge(job: str = "", build: str = "lastBuild"):
         job_status = job_data["result"]
         print("job status: {job_status}")
 
-    except requests.exceptions.HTTPError as http_err:
+    except httpx.HTTPStatusError as http_err:
         print(f"HTTP error occurred: {http_err}")
-    except requests.exceptions.ConnectionError as conn_err:
+    except httpx.ConnectError as conn_err:
         print(f"Connection error occurred: {conn_err}")
-    except requests.exceptions.Timeout as timeout_err:
+    except httpx.TimeoutException as timeout_err:
         print(f"Request timed out: {timeout_err}")
 
     status_text = status_names.get(job_status, "Null")

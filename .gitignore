@@ -12,3 +12,4 @@ wheels/
 conf.env
 
 uv.lock
+package-lock.json
