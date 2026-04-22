@@ -72,6 +72,18 @@ def rgb_to_hex(rgb):
 
 @app.get("/jenkins_badge")
 async def jenkins_badge(job: str = "", build: str = "lastBuild"):
+    status_names = {
+        "SUCCESS":"passing",
+        "FAILURE":"failing",
+    }
+
+    status_colors = {
+        "SUCCESS":"44cc11",
+        "FAILURE":"ff3e3e",
+    }
+
+    # Default status
+    job_status = None
 
     print(f"fetching job {job} number {build}")
 
@@ -83,36 +95,22 @@ async def jenkins_badge(job: str = "", build: str = "lastBuild"):
     try:
         jenkins_response = requests.get(request_str)
         jenkins_response.raise_for_status()
+    
+        job_data = jenkins_response.json()
+        if("result" not in job_data):
+            print("ERROR: no result in jenkins json")
+
+        job_status = job_data["result"]
+        print("job status: {job_status}")
+
     except requests.exceptions.HTTPError as http_err:
         print(f"HTTP error occurred: {http_err}")
-        return
     except requests.exceptions.ConnectionError as conn_err:
         print(f"Connection error occurred: {conn_err}")
-        return
     except requests.exceptions.Timeout as timeout_err:
         print(f"Request timed out: {timeout_err}")
-        return
-    
 
-    job_data = jenkins_response.json()
-    if("result" not in job_data):
-        print("ERROR: no result in jenkins json")
-
-    job_status = job_data["result"]
-    print("job status: {job_status}")
-
-
-    status_names = {
-        "SUCCESS":"passing",
-        "FAILURE":"failing",
-    }
-
-    status_colors = {
-        "SUCCESS":"44cc11",
-        "FAILURE":"ff3e3e",
-    }
-
-    status_text = status_names.get(job_status, "NULL")
+    status_text = status_names.get(job_status, "Null")
     status_color = status_colors.get(job_status, "2e3846")
 
     # generate image
