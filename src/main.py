@@ -5,6 +5,8 @@ import colorsys, os
 from typing import Optional
 from simplepycons import all_icons
 import httpx
+import colorsys
+import drawsvg as draw
 
 app = FastAPI()
 
@@ -133,145 +135,117 @@ async def badge(label: str = "", icon: str = "", color: str = "FF4713"):
     response.headers["Cache-Control"] = "public, max-age=86400"
     return response
 
+@app.get("/button")
+async def badge(label: str = "", icon: str = "", color: str = "FF4713"):
+
+    # generate image
+    svg = build_standard_badge(label=label.upper(), icon=icon, color=color)
+
+    # return response
+    response = Response(content=svg, media_type="image/svg+xml")
+    response.headers["Cache-Control"] = "public, max-age=86400"
+    return response
+
+
 def build_standard_badge(
-        prefix: str = "", 
-        label: str = "",
-        icon: str = "",
-        color: str = "FF4713",
-        label_color: str = "FF4713"
-    ) -> str:
-
-    display_text = prefix+label
-
+    prefix: str = "",
+    label: str = "",
+    icon: str = "",
+    color: str = "FF4713",
+    label_color: str = "FF4713",
+) -> str:
+    display_text = prefix + label
     text_width = get_char_width(display_text)
     label_width = get_char_width(label)
 
-        
-
-    char_height = 1
     rect_height = 28
     icon_width = 14
     left_padding = 9
 
     icon_svg = get_icon(icon)
-    is_icon = icon_svg == ""
-    text_x = (left_padding+icon_width)*(not is_icon)+left_padding
-    rect_width = text_x+text_width+left_padding
+    has_icon = icon_svg != ""
+    has_label = prefix != ""
 
-    has_label = prefix!=""
+    text_x = (left_padding + icon_width) * has_icon + left_padding
+    rect_width = text_x + text_width + left_padding
+    if has_label:
+        rect_width += 9  # prefix padding
+    text_rect_width = label_width + left_padding * 2
 
-    if(has_label):
-        prefix_padding = 9
-        rect_width += prefix_padding
+    # Darker gradient stop
+    bg_hex = "#" + color
+    h, s, v = colorsys.rgb_to_hsv(*hex_to_rgb(bg_hex))
+    bg_alt_hex = rgb_to_hex(colorsys.hsv_to_rgb(h, s, max(v * 0.75, 0)))
 
-    text_rect_width = label_width+left_padding*2
+    output = draw.Drawing(rect_width, rect_height, origin=(0, 0))
 
-    bg_hex = "#"+color
+    # Gradient
+    grad = draw.LinearGradient(
+        rect_width * 0.2, 0,
+        rect_width * 0.2, rect_height,
+        id="bg_grad",
+    )
+    grad.add_stop(0, bg_hex)
+    grad.add_stop(1, bg_alt_hex)
+    output.append(grad)
 
-    bg_alt_hsv = colorsys.rgb_to_hsv(*hex_to_rgb(bg_hex))
-    bg_alt_hsv = (bg_alt_hsv[0], bg_alt_hsv[1], max(bg_alt_hsv[2]*0.75,0))
+    # Add drop shadow
+    shadow = draw.Filter(id="drop_shadow_1", width=120, height=120)
+    shadow.append(draw.FilterItem("feOffset", in_="SourceAlpha", dx=2, dy=2, result="offsetOut"))
+    shadow.append(draw.FilterItem("feGaussianBlur", in_="offsetOut", stdDeviation=1.8, result="blurOut"))
+    shadow.append(draw.FilterItem("feFlood", flood_color="black", flood_opacity=0.3, result="colorOut"))
+    shadow.append(draw.FilterItem("feComposite", in_="colorOut", in2="blurOut", operator="in", result="shadow"))
+    merge = draw.FilterItem("feMerge")
+    merge.append(draw.FilterItem("feMergeNode", in_="shadow"))
+    merge.append(draw.FilterItem("feMergeNode", in_="SourceGraphic"))
+    shadow.append(merge)
+    output.append(shadow)
 
-    bg_alt_hex = rgb_to_hex(colorsys.hsv_to_rgb(*bg_alt_hsv))
+    # Main background
+    output.append(draw.Rectangle(0, 0, rect_width, rect_height, fill="url(#bg_grad)", rx=8))
 
-    # header
-    svg=f"""
-<svg
-    width="{rect_width}"
-    height="28"
-    xmlns="http://www.w3.org/2000/svg"
-    xmlns:xlink="http://www.w3.org/1999/xlink"
->
-"""
+    # Label background (right side)
+    if has_label:
+        output.append(draw.Rectangle(
+            rect_width - text_rect_width, 0,
+            text_rect_width, rect_height,
+            fill=f"#{label_color}", rx=8,
+        ))
 
-    # gradient
-    svg += f"""
-    <defs>
-        <linearGradient id="bg_grad" x1="20%" y1="0%" x2="80%" y2="100%">
-            <stop offset="0%" stop-color="{bg_hex}" />
-            <stop offset="100%" stop-color="{bg_alt_hex}" />
-        </linearGradient>
+    # Icon
+    if has_icon:
+        group = draw.Group(
+            transform=f"translate({left_padding},{rect_height/2 - icon_width/2})",
+            fill="white",
+            filter="url(#drop_shadow_1)",
+        )
+        group.append(draw.Raw(
+            f'<svg role="img" width="{icon_width}" height="{icon_width}" '
+            f'viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">{icon_svg}</svg>'
+        ))
+        output.append(group)
 
-        <filter id="drop_shadow_1" width="120" height="120">
-            <!-- Offset shadow -->
-            <feOffset in="SourceAlpha" dx="2" dy="2" result="offsetOut" />
-            <!-- Blur the shadow -->
-            <feGaussianBlur in="offsetOut" stdDeviation="1.8" result="blurOut" />
-            <!-- Set shadow color -->
-            <feFlood flood-color="black" flood-opacity="0.3" result="colorOut" />
-            <!-- Apply shadow color -->
-            <feComposite in="colorOut" in2="blurOut" operator="in" result="shadow" />
-            <!-- Merge shadow with original shape -->
-            <feMerge>
-                <feMergeNode in="shadow" />
-                <feMergeNode in="SourceGraphic" />
-            </feMerge>
-        </filter>
-    </defs>
+    # Text
+    font_family = ("monospace,Liberation Mono,Consolas,Menlo,Monaco,"
+                   "Lucida Console,DejaVu Sans Mono,Bitstream Vera Sans Mono,"
+                   "Courier New,serif")
+    text_kwargs = dict(
+        font_family=font_family,
+        fill="white",
+        dominant_baseline="middle",
+        text_rendering="geometricPrecision",
+        font_weight="bold",
+    )
+    text_y = rect_height / 2 + 1  # was char_height
 
-"""
+    if has_label:
+        output.append(draw.Text(prefix, 13, text_x, text_y, **text_kwargs))
 
-    # main background
-    svg += f"""
-    <rect x="0" y="0" width="{rect_width}" height="{rect_height}" fill="url(#bg_grad)" rx="8"/>
-"""
+    output.append(draw.Text(
+        label, 13,
+        rect_width - text_rect_width + left_padding,
+        text_y,
+        **text_kwargs,
+    ))
 
-    # label background
-    # only if there's a prefix
-    if(has_label):
-        svg += f"""
-        <rect x="{rect_width-text_rect_width}" width="{text_rect_width}" height="{rect_height}" fill="#{label_color}" rx="8"/>
-  
-  
-"""
-
-    # icon
-    svg += f"""
-    <g transform="translate({left_padding},{rect_height/2-icon_width/2})" fill="white" filter="url(#drop_shadow_1)">  
-        <svg role="img" width="{icon_width}" height="{icon_width}" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-            {icon_svg}
-        </svg>
-    </g>
-
-"""
-
-    # prefix text
-    if(has_label):
-        svg += f"""
-        <text
-            x="{text_x}"
-            y="{rect_height/2+char_height}"
-            font-family="monospace,Liberation Mono,Consolas,Menlo,Monaco,Lucida Console,DejaVu Sans Mono,Bitstream Vera Sans Mono,Courier New,serif"
-            font-size="13"
-            fill="white"
-            dominant-baseline="middle"
-            text-rendering="geometricPrecision"
-            font-weight="bold"
-        >
-            {prefix}
-        </text>
-
-    """
-
-    # label text
-    svg += f"""
-    <text
-        x="{rect_width-text_rect_width+left_padding}"
-        y="{rect_height/2+char_height}"
-        font-family="monospace,Liberation Mono,Consolas,Menlo,Monaco,Lucida Console,DejaVu Sans Mono,Bitstream Vera Sans Mono,Courier New,serif"
-        font-size="13"
-        fill="white"
-        dominant-baseline="middle"
-        text-rendering="geometricPrecision"
-        font-weight="bold"
-    >
-        {label}
-    </text>
-"""
-
-    # footer
-    svg += """
-</svg>
-"""
-
-    return svg
-
+    return output.as_svg()

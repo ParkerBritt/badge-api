@@ -2,3 +2,4 @@ fastapi
 uvicorn
 simplepycons
 httpx
+drawsvg
