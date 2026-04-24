@@ -187,47 +187,37 @@ def build_standard_badge(
     output = draw.Drawing(rect_width, rect_height, origin=(0, 0))
 
     # Gradient
-    grad = draw.LinearGradient(
+    gradient = draw.LinearGradient(
         rect_width * 0.2,
         0,
         rect_width * 0.2,
         rect_height,
-        id="bg_grad",
     )
-    grad.add_stop(0, bg_hex)
-    grad.add_stop(1, bg_alt_hex)
-    output.append(grad)
+    gradient.add_stop(0, bg_hex)
+    gradient.add_stop(1, bg_alt_hex)
 
-    # Add drop shadow
-    shadow = draw.Filter(id="drop_shadow_1", width=120, height=120)
-    shadow.append(
-        draw.FilterItem("feOffset", in_="SourceAlpha", dx=2, dy=2, result="offsetOut")
-    )
-    shadow.append(
+    # Drop shadow
+    shadow = draw.Filter(width=120, height=120)
+    for item in (
+        draw.FilterItem("feOffset", in_="SourceAlpha", dx=2, dy=2, result="offsetOut"),
         draw.FilterItem(
             "feGaussianBlur", in_="offsetOut", stdDeviation=1.8, result="blurOut"
-        )
-    )
-    shadow.append(
+        ),
         draw.FilterItem(
             "feFlood", flood_color="black", flood_opacity=0.3, result="colorOut"
-        )
-    )
-    shadow.append(
+        ),
         draw.FilterItem(
             "feComposite", in_="colorOut", in2="blurOut", operator="in", result="shadow"
-        )
-    )
+        ),
+    ):
+        shadow.append(item)
     merge = draw.FilterItem("feMerge")
     merge.append(draw.FilterItem("feMergeNode", in_="shadow"))
     merge.append(draw.FilterItem("feMergeNode", in_="SourceGraphic"))
     shadow.append(merge)
-    output.append(shadow)
 
     # Main background
-    output.append(
-        draw.Rectangle(0, 0, rect_width, rect_height, fill="url(#bg_grad)", rx=8)
-    )
+    output.append(draw.Rectangle(0, 0, rect_width, rect_height, fill=gradient, rx=8))
 
     # Label background (right side)
     if has_label:
@@ -245,9 +235,9 @@ def build_standard_badge(
     # Icon
     if has_icon:
         group = draw.Group(
-            transform=f"translate({left_padding},{rect_height/2 - icon_width/2})",
+            transform=f"translate({left_padding},{rect_height / 2 - icon_width / 2})",
             fill="white",
-            filter="url(#drop_shadow_1)",
+            filter=shadow,
         )
         group.append(
             draw.Raw(
@@ -258,6 +248,7 @@ def build_standard_badge(
         output.append(group)
 
     # Text
+    # TODO: move to constant
     font_family = (
         "monospace,Liberation Mono,Consolas,Menlo,Monaco,"
         "Lucida Console,DejaVu Sans Mono,Bitstream Vera Sans Mono,"
@@ -270,11 +261,10 @@ def build_standard_badge(
         text_rendering="geometricPrecision",
         font_weight="bold",
     )
-    text_y = rect_height / 2 + 1  # was char_height
+    text_y = rect_height / 2 + 1
 
     if has_label:
         output.append(draw.Text(prefix, 13, text_x, text_y, **text_kwargs))
-
     output.append(
         draw.Text(
             label,
