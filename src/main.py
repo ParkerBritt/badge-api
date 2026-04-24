@@ -10,8 +10,10 @@ import drawsvg as draw
 
 app = FastAPI()
 
+
 def get_char_width(_string: str):
-    return len(_string)*7.83 # using mono font
+    return len(_string) * 7.83  # using mono font
+
 
 def get_icon(icon_name: str) -> str:
     """
@@ -25,7 +27,7 @@ def get_icon(icon_name: str) -> str:
     """
 
     icon_name = icon_name.lower()
-    if(icon_name not in all_icons.names()):
+    if icon_name not in all_icons.names():
         print(f"WARNING: invalid icon name '{icon_name}'")
         return ""
 
@@ -40,30 +42,29 @@ def get_icon(icon_name: str) -> str:
     return svg_path
 
 
-
 def hex_to_rgb(hex_color):
     """
     Convert a hex color string to an RGB tuple.
-    
+
     Args:
         hex_color (str): A hex string (e.g., "#FF5733" or "FF5733")
-    
+
     Returns:
         tuple: An (R, G, B) tuple where each value is 0-255.
     """
-    hex_color = hex_color.lstrip('#')  # Remove '#' if present
+    hex_color = hex_color.lstrip("#")  # Remove '#' if present
     if len(hex_color) != 6:
         raise ValueError("Invalid hex color format. Must be 6 characters long.")
-    return tuple(int(hex_color[i:i+2], 16) for i in (0, 2, 4))
+    return tuple(int(hex_color[i : i + 2], 16) for i in (0, 2, 4))
 
 
 def rgb_to_hex(rgb):
     """
     Convert an RGB tuple to a hex color string.
-    
+
     Args:
         rgb (tuple): An (R, G, B) tuple where each value is 0-255.
-    
+
     Returns:
         str: A hex color string (e.g., "#FF5733").
     """
@@ -75,13 +76,13 @@ def rgb_to_hex(rgb):
 @app.get("/jenkins_badge")
 async def jenkins_badge(job: str = "", build: str = "lastBuild"):
     status_names = {
-        "SUCCESS":"passing",
-        "FAILURE":"failing",
+        "SUCCESS": "passing",
+        "FAILURE": "failing",
     }
 
     status_colors = {
-        "SUCCESS":"44cc11",
-        "FAILURE":"ff3e3e",
+        "SUCCESS": "44cc11",
+        "FAILURE": "ff3e3e",
     }
 
     # Default status
@@ -91,7 +92,9 @@ async def jenkins_badge(job: str = "", build: str = "lastBuild"):
 
     jenkins_ip = os.getenv("JENKINS_IP", "0.0.0.0")
     jenkins_port = os.getenv("JENKINS_PORT", "80")
-    request_str = f"http://{jenkins_ip}:{jenkins_port}/job/{job}/{build}/api/json?pretty=true"
+    request_str = (
+        f"http://{jenkins_ip}:{jenkins_port}/job/{job}/{build}/api/json?pretty=true"
+    )
 
     print(f"making request: {request_str}")
     try:
@@ -100,7 +103,7 @@ async def jenkins_badge(job: str = "", build: str = "lastBuild"):
             jenkins_response.raise_for_status()
 
         job_data = jenkins_response.json()
-        if("result" not in job_data):
+        if "result" not in job_data:
             print("ERROR: no result in jenkins json")
 
         job_status = job_data["result"]
@@ -117,12 +120,15 @@ async def jenkins_badge(job: str = "", build: str = "lastBuild"):
     status_color = status_colors.get(job_status, "2e3846")
 
     # generate image
-    svg = build_standard_badge(prefix="build ", label=status_text, color="2e3846", label_color=status_color)
+    svg = build_standard_badge(
+        prefix="build ", label=status_text, color="2e3846", label_color=status_color
+    )
 
     # return response
     response = Response(content=svg, media_type="image/svg+xml")
     response.headers["Cache-Control"] = "public, max-age=3600"
     return response
+
 
 @app.get("/badge")
 async def badge(label: str = "", icon: str = "", color: str = "FF4713"):
@@ -134,6 +140,7 @@ async def badge(label: str = "", icon: str = "", color: str = "FF4713"):
     response = Response(content=svg, media_type="image/svg+xml")
     response.headers["Cache-Control"] = "public, max-age=86400"
     return response
+
 
 @app.get("/button")
 async def badge(label: str = "", icon: str = "", color: str = "FF4713"):
@@ -181,8 +188,10 @@ def build_standard_badge(
 
     # Gradient
     grad = draw.LinearGradient(
-        rect_width * 0.2, 0,
-        rect_width * 0.2, rect_height,
+        rect_width * 0.2,
+        0,
+        rect_width * 0.2,
+        rect_height,
         id="bg_grad",
     )
     grad.add_stop(0, bg_hex)
@@ -191,10 +200,24 @@ def build_standard_badge(
 
     # Add drop shadow
     shadow = draw.Filter(id="drop_shadow_1", width=120, height=120)
-    shadow.append(draw.FilterItem("feOffset", in_="SourceAlpha", dx=2, dy=2, result="offsetOut"))
-    shadow.append(draw.FilterItem("feGaussianBlur", in_="offsetOut", stdDeviation=1.8, result="blurOut"))
-    shadow.append(draw.FilterItem("feFlood", flood_color="black", flood_opacity=0.3, result="colorOut"))
-    shadow.append(draw.FilterItem("feComposite", in_="colorOut", in2="blurOut", operator="in", result="shadow"))
+    shadow.append(
+        draw.FilterItem("feOffset", in_="SourceAlpha", dx=2, dy=2, result="offsetOut")
+    )
+    shadow.append(
+        draw.FilterItem(
+            "feGaussianBlur", in_="offsetOut", stdDeviation=1.8, result="blurOut"
+        )
+    )
+    shadow.append(
+        draw.FilterItem(
+            "feFlood", flood_color="black", flood_opacity=0.3, result="colorOut"
+        )
+    )
+    shadow.append(
+        draw.FilterItem(
+            "feComposite", in_="colorOut", in2="blurOut", operator="in", result="shadow"
+        )
+    )
     merge = draw.FilterItem("feMerge")
     merge.append(draw.FilterItem("feMergeNode", in_="shadow"))
     merge.append(draw.FilterItem("feMergeNode", in_="SourceGraphic"))
@@ -202,15 +225,22 @@ def build_standard_badge(
     output.append(shadow)
 
     # Main background
-    output.append(draw.Rectangle(0, 0, rect_width, rect_height, fill="url(#bg_grad)", rx=8))
+    output.append(
+        draw.Rectangle(0, 0, rect_width, rect_height, fill="url(#bg_grad)", rx=8)
+    )
 
     # Label background (right side)
     if has_label:
-        output.append(draw.Rectangle(
-            rect_width - text_rect_width, 0,
-            text_rect_width, rect_height,
-            fill=f"#{label_color}", rx=8,
-        ))
+        output.append(
+            draw.Rectangle(
+                rect_width - text_rect_width,
+                0,
+                text_rect_width,
+                rect_height,
+                fill=f"#{label_color}",
+                rx=8,
+            )
+        )
 
     # Icon
     if has_icon:
@@ -219,16 +249,20 @@ def build_standard_badge(
             fill="white",
             filter="url(#drop_shadow_1)",
         )
-        group.append(draw.Raw(
-            f'<svg role="img" width="{icon_width}" height="{icon_width}" '
-            f'viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">{icon_svg}</svg>'
-        ))
+        group.append(
+            draw.Raw(
+                f'<svg role="img" width="{icon_width}" height="{icon_width}" '
+                f'viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">{icon_svg}</svg>'
+            )
+        )
         output.append(group)
 
     # Text
-    font_family = ("monospace,Liberation Mono,Consolas,Menlo,Monaco,"
-                   "Lucida Console,DejaVu Sans Mono,Bitstream Vera Sans Mono,"
-                   "Courier New,serif")
+    font_family = (
+        "monospace,Liberation Mono,Consolas,Menlo,Monaco,"
+        "Lucida Console,DejaVu Sans Mono,Bitstream Vera Sans Mono,"
+        "Courier New,serif"
+    )
     text_kwargs = dict(
         font_family=font_family,
         fill="white",
@@ -241,11 +275,14 @@ def build_standard_badge(
     if has_label:
         output.append(draw.Text(prefix, 13, text_x, text_y, **text_kwargs))
 
-    output.append(draw.Text(
-        label, 13,
-        rect_width - text_rect_width + left_padding,
-        text_y,
-        **text_kwargs,
-    ))
+    output.append(
+        draw.Text(
+            label,
+            13,
+            rect_width - text_rect_width + left_padding,
+            text_y,
+            **text_kwargs,
+        )
+    )
 
     return output.as_svg()
