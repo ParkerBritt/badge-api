@@ -11,6 +11,12 @@ import requests
 from io import BytesIO
 from PIL import Image
 
+FONT_FAMILY = (
+    "monospace,Liberation Mono,Consolas,Menlo,Monaco,"
+    "Lucida Console,DejaVu Sans Mono,Bitstream Vera Sans Mono,"
+    "Courier New,serif"
+)
+
 app = FastAPI()
 
 
@@ -148,7 +154,7 @@ async def badge(label: str = "", icon: str = "", color: str = "FF4713"):
 async def repo():
 
     # generate image
-    svg = build_card_badge()
+    svg = build_repo_badge()
 
     # return response
     response = Response(content=svg, media_type="image/svg+xml")
@@ -167,12 +173,20 @@ async def badge(label: str = "", color: str = "2f2f2f", border_color: str = "717
     response.headers["Cache-Control"] = "public, max-age=86400"
     return response
 
-def build_card_badge():
-    width=300
-    height=200
+def build_repo_badge():
+    width=421
+    height=250
     border_width = 2
     half_border = border_width//2
     border_radius = 15
+    bottom_padding = 50
+
+    text_kwargs = dict(
+        font_family=FONT_FAMILY,
+        fill="white",
+        dominant_baseline="middle",
+        font_weight="bold",
+    )
 
     svg = draw.Drawing(width+border_width, height+border_width, origin=(0, 0))
     svg.append(draw.Rectangle(half_border, half_border, width, height, fill="#121215", rx=border_radius, stroke="#2b2c30", stroke_width=border_width))
@@ -190,14 +204,47 @@ def build_card_badge():
     image_width = width-half_border
     image_height = image_width * h / w
 
-    clip = draw.ClipPath()
-    clip.append(draw.Rectangle(image_x, image_y, image_width, min(height-40, image_height), rx=border_radius))
+    title_font_size = 20
 
+    # Background
+    svg.append(draw.Rectangle(half_border, half_border, width, height, fill="#121215", rx=border_radius, stroke="#2b2c30", stroke_width=border_width))
+
+    # Image mask
+    clip = draw.ClipPath()
+    clip.append(draw.Rectangle(image_x, image_y, image_width, min(height-bottom_padding, image_height), rx=border_radius))
+
+    # Image
     svg.append(draw.Image(image_x, image_y, image_width, image_height, data=data, embed=True, clip_path=clip))
 
-    # svg.append(draw.Text("test"), font_size = 5)
+    # Title text
+    title_height = 20
+    svg.append(draw.Text("Website", x=30, y=height-title_font_size//2-title_height, font_size = title_font_size, **text_kwargs))
 
     return svg.as_svg()
+
+def get_drop_shadow():
+    # Drop shadow
+    shadow = draw.Filter(width=120, height=120)
+    for item in (
+        draw.FilterItem("feOffset", in_="SourceAlpha", dx=2, dy=2, result="offsetOut"),
+        draw.FilterItem(
+            "feGaussianBlur", in_="offsetOut", stdDeviation=1.8, result="blurOut"
+        ),
+        draw.FilterItem(
+            "feFlood", flood_color="black", flood_opacity=0.3, result="colorOut"
+        ),
+        draw.FilterItem(
+            "feComposite", in_="colorOut", in2="blurOut", operator="in", result="shadow"
+        ),
+    ):
+        shadow.append(item)
+    merge = draw.FilterItem("feMerge")
+    merge.append(draw.FilterItem("feMergeNode", in_="shadow"))
+    merge.append(draw.FilterItem("feMergeNode", in_="SourceGraphic"))
+    shadow.append(merge)
+
+    return shadow
+
 
 # TODO: convert to builder design pattern
 def build_standard_badge(
@@ -247,24 +294,7 @@ def build_standard_badge(
     gradient.add_stop(1, bg_alt_hex)
 
     # Drop shadow
-    shadow = draw.Filter(width=120, height=120)
-    for item in (
-        draw.FilterItem("feOffset", in_="SourceAlpha", dx=2, dy=2, result="offsetOut"),
-        draw.FilterItem(
-            "feGaussianBlur", in_="offsetOut", stdDeviation=1.8, result="blurOut"
-        ),
-        draw.FilterItem(
-            "feFlood", flood_color="black", flood_opacity=0.3, result="colorOut"
-        ),
-        draw.FilterItem(
-            "feComposite", in_="colorOut", in2="blurOut", operator="in", result="shadow"
-        ),
-    ):
-        shadow.append(item)
-    merge = draw.FilterItem("feMerge")
-    merge.append(draw.FilterItem("feMergeNode", in_="shadow"))
-    merge.append(draw.FilterItem("feMergeNode", in_="SourceGraphic"))
-    shadow.append(merge)
+    shadow = get_drop_shadow()
 
     # Main background
     output.append(draw.Rectangle(0, 0, rect_width, rect_height, fill=gradient, rx=8, stroke=border_color, stroke_width=1))
@@ -298,14 +328,8 @@ def build_standard_badge(
         output.append(group)
 
     # Text
-    # TODO: move to constant
-    font_family = (
-        "monospace,Liberation Mono,Consolas,Menlo,Monaco,"
-        "Lucida Console,DejaVu Sans Mono,Bitstream Vera Sans Mono,"
-        "Courier New,serif"
-    )
     text_kwargs = dict(
-        font_family=font_family,
+        font_family=FONT_FAMILY,
         fill="white",
         dominant_baseline="middle",
         text_rendering="geometricPrecision",
