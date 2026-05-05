@@ -101,9 +101,7 @@ async def jenkins_badge(job: str = "", build: str = "lastBuild"):
 
     jenkins_ip = os.getenv("JENKINS_IP", "0.0.0.0")
     jenkins_port = os.getenv("JENKINS_PORT", "80")
-    request_str = (
-        f"http://{jenkins_ip}:{jenkins_port}/job/{job}/{build}/api/json?pretty=true"
-    )
+    request_str = f"http://{jenkins_ip}:{jenkins_port}/job/{job}/{build}/api/json?pretty=true"
 
     print(f"making request: {request_str}")
     try:
@@ -150,6 +148,7 @@ async def badge(label: str = "", icon: str = "", color: str = "FF4713"):
     response.headers["Cache-Control"] = "public, max-age=86400"
     return response
 
+
 @app.get("/repo")
 async def repo():
 
@@ -173,11 +172,12 @@ async def badge(label: str = "", color: str = "2f2f2f", border_color: str = "717
     response.headers["Cache-Control"] = "public, max-age=86400"
     return response
 
+
 def build_repo_badge():
-    width=421
-    height=250
+    width = 421
+    height = 250
     border_width = 2
-    half_border = border_width//2
+    half_border = border_width // 2
     border_radius = 15
     bottom_padding = 50
 
@@ -188,11 +188,21 @@ def build_repo_badge():
         font_weight="bold",
     )
 
-    svg = draw.Drawing(width+border_width, height+border_width, origin=(0, 0))
-    svg.append(draw.Rectangle(half_border, half_border, width, height, fill="#121215", rx=border_radius, stroke="#2b2c30", stroke_width=border_width))
+    svg = draw.Drawing(width + border_width, height + border_width, origin=(0, 0))
+    svg.append(
+        draw.Rectangle(
+            half_border,
+            half_border,
+            width,
+            height,
+            fill="#121215",
+            rx=border_radius,
+            stroke="#2b2c30",
+            stroke_width=border_width,
+        )
+    )
 
-
-    url = 'https://github.com/ParkerBritt/website/raw/main/screenshots/home_page.png'
+    url = "https://github.com/ParkerBritt/website/raw/main/screenshots/home_page.png"
     resp = requests.get(url)
     resp.raise_for_status()
 
@@ -201,38 +211,66 @@ def build_repo_badge():
 
     image_x = half_border
     image_y = half_border
-    image_width = width-half_border
+    image_width = width - half_border
     image_height = image_width * h / w
 
     title_font_size = 20
 
     # Background
-    svg.append(draw.Rectangle(half_border, half_border, width, height, fill="#121215", rx=border_radius, stroke="#2b2c30", stroke_width=border_width))
+    svg.append(
+        draw.Rectangle(
+            half_border,
+            half_border,
+            width,
+            height,
+            fill="#121215",
+            rx=border_radius,
+            stroke="#2b2c30",
+            stroke_width=border_width,
+        )
+    )
 
     # Image mask
     clip = draw.ClipPath()
-    clip.append(draw.Rectangle(image_x, image_y, image_width, min(height-bottom_padding, image_height), rx=border_radius))
+    clip.append(
+        draw.Rectangle(
+            image_x,
+            image_y,
+            image_width,
+            min(height - bottom_padding, image_height),
+            rx=border_radius,
+        )
+    )
 
     # Image
-    svg.append(draw.Image(image_x, image_y, image_width, image_height, data=data, embed=True, clip_path=clip))
+    svg.append(
+        draw.Image(
+            image_x, image_y, image_width, image_height, data=data, embed=True, clip_path=clip
+        )
+    )
 
     # Title text
     title_height = 20
-    svg.append(draw.Text("Website", x=30, y=height-title_font_size//2-title_height, font_size = title_font_size, **text_kwargs))
+    svg.append(
+        draw.Text(
+            "Website",
+            x=30,
+            y=height - title_font_size // 2 - title_height,
+            font_size=title_font_size,
+            **text_kwargs,
+        )
+    )
 
     return svg.as_svg()
+
 
 def get_drop_shadow():
     # Drop shadow
     shadow = draw.Filter(width=120, height=120)
     for item in (
         draw.FilterItem("feOffset", in_="SourceAlpha", dx=2, dy=2, result="offsetOut"),
-        draw.FilterItem(
-            "feGaussianBlur", in_="offsetOut", stdDeviation=1.8, result="blurOut"
-        ),
-        draw.FilterItem(
-            "feFlood", flood_color="black", flood_opacity=0.3, result="colorOut"
-        ),
+        draw.FilterItem("feGaussianBlur", in_="offsetOut", stdDeviation=1.8, result="blurOut"),
+        draw.FilterItem("feFlood", flood_color="black", flood_opacity=0.3, result="colorOut"),
         draw.FilterItem(
             "feComposite", in_="colorOut", in2="blurOut", operator="in", result="shadow"
         ),
@@ -268,7 +306,7 @@ def build_standard_badge(
     has_label = prefix != ""
 
     if border_color:
-        border_color = "#"+border_color
+        border_color = "#" + border_color
 
     text_x = (left_padding + icon_width) * has_icon + left_padding
     rect_width = text_x + text_width + left_padding
@@ -297,7 +335,11 @@ def build_standard_badge(
     shadow = get_drop_shadow()
 
     # Main background
-    output.append(draw.Rectangle(0, 0, rect_width, rect_height, fill=gradient, rx=8, stroke=border_color, stroke_width=1))
+    output.append(
+        draw.Rectangle(
+            0, 0, rect_width, rect_height, fill=gradient, rx=8, stroke=border_color, stroke_width=1
+        )
+    )
 
     # Label background (right side)
     if has_label:
