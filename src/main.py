@@ -7,6 +7,9 @@ from simplepycons import all_icons
 import httpx
 import colorsys
 import drawsvg as draw
+import requests
+from io import BytesIO
+from PIL import Image
 
 app = FastAPI()
 
@@ -141,12 +144,11 @@ async def badge(label: str = "", icon: str = "", color: str = "FF4713"):
     response.headers["Cache-Control"] = "public, max-age=86400"
     return response
 
-
-@app.get("/button")
-async def badge(label: str = "", icon: str = "", color: str = "FF4713"):
+@app.get("/repo")
+async def repo():
 
     # generate image
-    svg = build_standard_badge(label=label.upper(), icon=icon, color=color)
+    svg = build_card_badge()
 
     # return response
     response = Response(content=svg, media_type="image/svg+xml")
@@ -154,12 +156,57 @@ async def badge(label: str = "", icon: str = "", color: str = "FF4713"):
     return response
 
 
+@app.get("/button")
+async def badge(label: str = "", color: str = "2f2f2f", border_color: str = "717171"):
+
+    # generate image
+    svg = build_standard_badge(label=label, color=color, border_color=border_color)
+
+    # return response
+    response = Response(content=svg, media_type="image/svg+xml")
+    response.headers["Cache-Control"] = "public, max-age=86400"
+    return response
+
+def build_card_badge():
+    width=300
+    height=200
+    border_width = 2
+    half_border = border_width//2
+    border_radius = 15
+
+    svg = draw.Drawing(width+border_width, height+border_width, origin=(0, 0))
+    svg.append(draw.Rectangle(half_border, half_border, width, height, fill="#121215", rx=border_radius, stroke="#2b2c30", stroke_width=border_width))
+
+
+    url = 'https://github.com/ParkerBritt/website/raw/main/screenshots/home_page.png'
+    resp = requests.get(url)
+    resp.raise_for_status()
+
+    data = resp.content
+    w, h = Image.open(BytesIO(data)).size
+
+    image_x = half_border
+    image_y = half_border
+    image_width = width-half_border
+    image_height = image_width * h / w
+
+    clip = draw.ClipPath()
+    clip.append(draw.Rectangle(image_x, image_y, image_width, min(height-40, image_height), rx=border_radius))
+
+    svg.append(draw.Image(image_x, image_y, image_width, image_height, data=data, embed=True, clip_path=clip))
+
+    # svg.append(draw.Text("test"), font_size = 5)
+
+    return svg.as_svg()
+
+# TODO: convert to builder design pattern
 def build_standard_badge(
     prefix: str = "",
     label: str = "",
     icon: str = "",
     color: str = "FF4713",
     label_color: str = "FF4713",
+    border_color: str = None,
 ) -> str:
     display_text = prefix + label
     text_width = get_char_width(display_text)
@@ -172,6 +219,9 @@ def build_standard_badge(
     icon_svg = get_icon(icon)
     has_icon = icon_svg != ""
     has_label = prefix != ""
+
+    if border_color:
+        border_color = "#"+border_color
 
     text_x = (left_padding + icon_width) * has_icon + left_padding
     rect_width = text_x + text_width + left_padding
@@ -217,7 +267,7 @@ def build_standard_badge(
     shadow.append(merge)
 
     # Main background
-    output.append(draw.Rectangle(0, 0, rect_width, rect_height, fill=gradient, rx=8))
+    output.append(draw.Rectangle(0, 0, rect_width, rect_height, fill=gradient, rx=8, stroke=border_color, stroke_width=1))
 
     # Label background (right side)
     if has_label:
