@@ -10,6 +10,13 @@ import drawsvg as draw
 import requests
 from io import BytesIO
 from PIL import Image
+from dotenv import load_dotenv
+import github
+
+load_dotenv("conf.env")
+
+auth = github.Auth.Token(os.getenv("GITHUB_TOKEN"))
+git = github.Github(auth=auth)
 
 FONT_FAMILY = (
     "monospace,Liberation Mono,Consolas,Menlo,Monaco,"
@@ -20,35 +27,22 @@ FONT_FAMILY = (
 app = FastAPI()
 
 
-def get_char_width(_string: str):
-    return len(_string) * 7.83  # using mono font
+def get_char_width(_string: str, font_size=13):
+    return len(_string) * 0.7*font_size  # using mono font
 
 
-def get_icon(icon_name: str) -> str:
-    """
-    Fetch the svg path for the desired simple icon
-
-    Args:
-        icon_name (str): The string name for the desired icon
-
-    Returns:
-        string: svg path for the desired simple icon
-    """
-
+def get_icon(icon_name, x=0, y=0, color="white", size=14, center=False):
     icon_name = icon_name.lower()
     if icon_name not in all_icons.names():
-        print(f"WARNING: invalid icon name '{icon_name}'")
-        return ""
-
-    # isolate path
-    svg_str = all_icons[icon_name].raw_svg
-    svg_path_match = re.search(r"<path[\S\s]*\/>", svg_str)
-    if not svg_path_match:
-        print(f"WARNING: could not parse svg for icon '{icon_name}'")
-        return ""
-
-    svg_path = svg_path_match.group()
-    return svg_path
+        return draw.Raw("")
+    match = re.search(r"<path[\S\s]*\/>", all_icons[icon_name].raw_svg)
+    path = match.group() if match else ""
+    if center:
+        x -= size / 2
+        y -= size / 2
+    return draw.Raw(
+        f'<svg x="{x}" y="{y}" width="{size}" height="{size}" viewBox="0 0 24 24" fill="{color}">{path}</svg>'
+    )
 
 
 def hex_to_rgb(hex_color):
@@ -153,7 +147,7 @@ async def badge(label: str = "", icon: str = "", color: str = "FF4713"):
 async def repo():
 
     # generate image
-    svg = build_repo_badge()
+    svg = build_repo_badge(title="Personal Website", image_url="https://github.com/ParkerBritt/website/raw/main/screenshots/home_page.png")
 
     # return response
     response = Response(content=svg, media_type="image/svg+xml")
@@ -172,14 +166,28 @@ async def badge(label: str = "", color: str = "2f2f2f", border_color: str = "717
     response.headers["Cache-Control"] = "public, max-age=86400"
     return response
 
+def blur_filter(blur=5):
+    b_filter = draw.Filter(x='-10%', y='-10%', width='120%', height='120%')
+    b_filter.append(draw.FilterItem('feGaussianBlur', in_='SourceGraphic', stdDeviation=blur))
+    return b_filter
 
-def build_repo_badge():
+def elide(text: str, recommended_length,font_size) -> str:
+    output = list()
+    for word in text.split():
+        if(get_char_width(" ".join(output), font_size)>recommended_length):
+            break
+        
+        output.append(word)
+
+    return " ".join(output)
+
+def build_repo_badge(user="parkerbritt", repo="enzo", title=None, image_url=None):
     width = 421
-    height = 250
-    border_width = 2
+    height = 200
+    border_width = 1
     half_border = border_width // 2
     border_radius = 15
-    bottom_padding = 50
+    bottom_padding = 40
 
     text_kwargs = dict(
         font_family=FONT_FAMILY,
@@ -187,6 +195,8 @@ def build_repo_badge():
         dominant_baseline="middle",
         font_weight="bold",
     )
+
+    g_repo = git.get_user(user).get_repo(repo)
 
     svg = draw.Drawing(width + border_width, height + border_width, origin=(0, 0))
     svg.append(
@@ -202,19 +212,21 @@ def build_repo_badge():
         )
     )
 
-    url = "https://github.com/ParkerBritt/website/raw/main/screenshots/home_page.png"
-    resp = requests.get(url)
+    resp = requests.get(image_url)
     resp.raise_for_status()
 
     data = resp.content
     w, h = Image.open(BytesIO(data)).size
 
-    image_x = half_border
-    image_y = half_border
-    image_width = width - half_border
-    image_height = image_width * h / w
+    image_padding = 20
+    image_x = half_border+image_padding//2
+    image_y = half_border+image_padding//2
+    image_width = width - half_border - image_padding
+    image_full_height = image_width * h / w
+    image_height = min(height - bottom_padding, image_full_height) - image_padding//2
 
-    title_font_size = 20
+    title_font_size = 25
+    subtitle_font_size = 10
 
     # Background
     svg.append(
@@ -237,40 +249,87 @@ def build_repo_badge():
             image_x,
             image_y,
             image_width,
-            min(height - bottom_padding, image_height),
+            image_height,
             rx=border_radius,
         )
     )
 
+    # Image Background
+    svg.append(
+        draw.Rectangle(
+            image_x,
+            image_y,
+            image_width,
+            image_height,
+            rx=border_radius,
+            filter=get_drop_shadow(opacity=0.3, color="black", blur=4,x=4,y=7)
+        )
+    )
+
+
     # Image
     svg.append(
         draw.Image(
-            image_x, image_y, image_width, image_height, data=data, embed=True, clip_path=clip
+            image_x, image_y, image_width, image_full_height, data=data, embed=True,
+            clip_path=clip,
+            filter=blur_filter(8)
         )
     )
 
     # Title text
     title_height = 20
+    subtitle_height = 10
+
     svg.append(
         draw.Text(
-            "Website",
-            x=30,
-            y=height - title_font_size // 2 - title_height,
+            title or repo,
+            x=image_x+image_width//2,
+            y=image_y+image_height//2,
             font_size=title_font_size,
+            filter=get_drop_shadow(opacity=0.8, blur=4,x=4,y=2),
+            text_anchor='middle',
             **text_kwargs,
         )
     )
 
+    # Subtitle
+    svg.append(
+        draw.Text(
+            elide(g_repo.description, width*0.8, subtitle_font_size)+"...",
+            x=6+image_padding//2,
+            y=height - subtitle_font_size // 2 - subtitle_height,
+            font_size=subtitle_font_size,
+            **text_kwargs,
+        )
+    )
+
+    # Langauge
+    language_text_x = image_x+image_width-get_char_width(g_repo.language, subtitle_font_size)
+    language_text_y = height - subtitle_font_size // 2 - subtitle_height
+    svg.append(
+        draw.Text(
+            g_repo.language,
+            x=language_text_x,
+            y=language_text_y,
+            font_size=subtitle_font_size,
+            **text_kwargs,
+        )
+    )
+
+    icon_size = 15
+    icon_padding = 4
+    svg.append(get_icon(g_repo.language, size=icon_size,x=language_text_x-icon_size//2-icon_padding, y=language_text_y, center = True))
+
     return svg.as_svg()
 
 
-def get_drop_shadow():
+def get_drop_shadow(opacity=0.3, color="black", blur=1.8, x=2, y=2):
     # Drop shadow
     shadow = draw.Filter(width=120, height=120)
     for item in (
-        draw.FilterItem("feOffset", in_="SourceAlpha", dx=2, dy=2, result="offsetOut"),
-        draw.FilterItem("feGaussianBlur", in_="offsetOut", stdDeviation=1.8, result="blurOut"),
-        draw.FilterItem("feFlood", flood_color="black", flood_opacity=0.3, result="colorOut"),
+        draw.FilterItem("feOffset", in_="SourceAlpha", dx=x, dy=y, result="offsetOut"),
+        draw.FilterItem("feGaussianBlur", in_="offsetOut", stdDeviation=blur, result="blurOut"),
+        draw.FilterItem("feFlood", flood_color=color, flood_opacity=opacity, result="colorOut"),
         draw.FilterItem(
             "feComposite", in_="colorOut", in2="blurOut", operator="in", result="shadow"
         ),
@@ -301,8 +360,7 @@ def build_standard_badge(
     icon_width = 14
     left_padding = 9
 
-    icon_svg = get_icon(icon)
-    has_icon = icon_svg != ""
+    has_icon = bool(icon) and icon.lower() in all_icons.names()
     has_label = prefix != ""
 
     if border_color:
@@ -356,18 +414,9 @@ def build_standard_badge(
 
     # Icon
     if has_icon:
-        group = draw.Group(
-            transform=f"translate({left_padding},{rect_height / 2 - icon_width / 2})",
-            fill="white",
-            filter=shadow,
-        )
-        group.append(
-            draw.Raw(
-                f'<svg role="img" width="{icon_width}" height="{icon_width}" '
-                f'viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">{icon_svg}</svg>'
-            )
-        )
-        output.append(group)
+        icon_group = draw.Group(filter=shadow)
+        icon_group.append(get_icon(icon, x=left_padding, y=rect_height / 2 - icon_width / 2, size=icon_width))
+        output.append(icon_group)
 
     # Text
     text_kwargs = dict(
