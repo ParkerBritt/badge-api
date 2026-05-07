@@ -19,7 +19,7 @@ auth = github.Auth.Token(os.getenv("GITHUB_TOKEN"))
 git = github.Github(auth=auth)
 
 FONT_FAMILY = (
-    "monospace,Liberation Mono,Consolas,Menlo,Monaco,"
+    "Liberation Mono,Consolas,Menlo,Monaco,"
     "Lucida Console,DejaVu Sans Mono,Bitstream Vera Sans Mono,"
     "Courier New,serif"
 )
@@ -173,10 +173,13 @@ def blur_filter(blur=5):
 
 def elide(text: str, recommended_length,font_size) -> str:
     output = list()
+    cur_length = -1
     for word in text.split():
-        if(get_char_width(" ".join(output), font_size)>recommended_length):
+        word_length = get_char_width(word, font_size)
+        if(cur_length+word_length>recommended_length):
             break
         
+        cur_length += word_length+1
         output.append(word)
 
     return " ".join(output)
@@ -207,7 +210,7 @@ def build_repo_badge(user="parkerbritt", repo="enzo", title=None, image_url=None
             height,
             fill="#121215",
             rx=border_radius,
-            stroke="#2b2c30",
+            stroke="#262629",
             stroke_width=border_width,
         )
     )
@@ -226,7 +229,11 @@ def build_repo_badge(user="parkerbritt", repo="enzo", title=None, image_url=None
     image_height = min(height - bottom_padding, image_full_height) - image_padding//2
 
     title_font_size = 25
-    subtitle_font_size = 10
+    subtitle_font_size = 13
+
+    icon_map = {
+        "c++":"cplusplus"
+    }
 
     # Background
     svg.append(
@@ -316,9 +323,26 @@ def build_repo_badge(user="parkerbritt", repo="enzo", title=None, image_url=None
         )
     )
 
-    icon_size = 15
+    icon_size = 13
     icon_padding = 4
-    svg.append(get_icon(g_repo.language, size=icon_size,x=language_text_x-icon_size//2-icon_padding, y=language_text_y, center = True))
+    info_gap = 10
+    icon_name = icon_map.get(g_repo.language.lower()) or g_repo.language.lower()
+    language_icon_x = language_text_x-icon_size//2-icon_padding
+    svg.append(get_icon(icon_name, size=icon_size,x=language_icon_x, y=language_text_y, center = True))
+
+    stars_text_x = language_icon_x-icon_size//2-get_char_width(str(g_repo.stargazers_count), subtitle_font_size)-info_gap
+    svg.append(
+        draw.Text(
+            str(g_repo.stargazers_count),
+            x=stars_text_x,
+            y=language_text_y,
+            font_size=subtitle_font_size,
+            **text_kwargs,
+        )
+    )
+
+    stars_icon_x = stars_text_x-icon_size//2-icon_padding
+    svg.append(get_icon(icon_name, size=icon_size,x=stars_icon_x, y=language_text_y, center = True))
 
     return svg.as_svg()
 
