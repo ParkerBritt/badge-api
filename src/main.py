@@ -31,11 +31,22 @@ def get_char_width(_string: str, font_size=13):
     return len(_string) * 0.7*font_size  # using mono font
 
 
-def get_icon(icon_name, x=0, y=0, color="white", size=14, center=False):
+def get_simple_icon(icon_name, x=0, y=0, color="white", size=14, center=False):
     icon_name = icon_name.lower()
     if icon_name not in all_icons.names():
         return draw.Raw("")
-    match = re.search(r"<path[\S\s]*\/>", all_icons[icon_name].raw_svg)
+    return get_icon(all_icons[icon_name].raw_svg, x=x, y=y, color=color, size=size, center=center)
+
+def get_file_icon(icon_name, x=0, y=0, color="white", size=14, center=False):
+    icon_path = os.path.join(os.path.dirname(__file__), "..", "icons", icon_name+".svg")
+    if not os.path.exists(icon_path):
+        return draw.Raw("")
+    with open(icon_path) as f:
+        svg_content = f.read()
+    return get_icon(svg_content, x=x, y=y, color=color, size=size, center=center)
+
+def get_icon(raw_svg, x=0, y=0, color="white", size=14, center=False):
+    match = re.search(r"<path[\S\s]*\/>", raw_svg)
     path = match.group() if match else ""
     if center:
         x -= size / 2
@@ -328,7 +339,7 @@ def build_repo_badge(user="parkerbritt", repo="enzo", title=None, image_url=None
     info_gap = 10
     icon_name = icon_map.get(g_repo.language.lower()) or g_repo.language.lower()
     language_icon_x = language_text_x-icon_size//2-icon_padding
-    svg.append(get_icon(icon_name, size=icon_size,x=language_icon_x, y=language_text_y, center = True))
+    svg.append(get_simple_icon(icon_name, size=icon_size,x=language_icon_x, y=language_text_y, center = True))
 
     stars_text_x = language_icon_x-icon_size//2-get_char_width(str(g_repo.stargazers_count), subtitle_font_size)-info_gap
     svg.append(
@@ -342,7 +353,7 @@ def build_repo_badge(user="parkerbritt", repo="enzo", title=None, image_url=None
     )
 
     stars_icon_x = stars_text_x-icon_size//2-icon_padding
-    svg.append(get_icon(icon_name, size=icon_size,x=stars_icon_x, y=language_text_y, center = True))
+    svg.append(get_file_icon("star", size=icon_size,x=stars_icon_x, y=language_text_y, center = True))
 
     return svg.as_svg()
 
@@ -439,7 +450,7 @@ def build_standard_badge(
     # Icon
     if has_icon:
         icon_group = draw.Group(filter=shadow)
-        icon_group.append(get_icon(icon, x=left_padding, y=rect_height / 2 - icon_width / 2, size=icon_width))
+        icon_group.append(get_simple_icon(icon, x=left_padding, y=rect_height / 2 - icon_width / 2, size=icon_width))
         output.append(icon_group)
 
     # Text
