@@ -179,7 +179,7 @@ async def badge(label: str = "", icon: str = "", color: str = "FF4713"):
 async def repo():
 
     # generate image
-    svg = build_repo_badge(title="Personal Website", image_url="https://github.com/ParkerBritt/website/raw/main/screenshots/home_page.png")
+    svg = build_repo_badge(title="Enzo", image_url="https://github.com/ParkerBritt/website/raw/main/screenshots/home_page.png")
 
     # return response
     response = Response(content=svg, media_type="image/svg+xml")
@@ -216,19 +216,34 @@ def elide(text: str, recommended_length,font_size) -> str:
 
     return " ".join(output)
 
-def build_repo_badge(user="parkerbritt", repo="open-widget-library", title=None, image_url=None):
+
+def elide_lines(text, max_width, font_size, max_lines=2):
+    text = text or ""
+    lines = []
+    while text and len(lines) < max_lines:
+        line = elide(text, max_width, font_size)
+        if not line:
+            break
+        lines.append(line)
+        text = text[len(line):].strip()
+    if text and lines:
+        lines[-1] += "..."
+    return lines
+
+
+def build_repo_badge(user="parkerbritt", repo="enzo", title=None, image_url=None):
     width = 421
     height = 200
     border_width = 1
     half_border = border_width // 2
     border_radius = 15
-    bottom_padding = 40
+    bottom_padding = 45
 
     text_kwargs = dict(
         font_family=FONT_FAMILY,
         fill="white",
         dominant_baseline="central",
-        font_weight="bold",
+        font_weight=100,
     )
 
     g_repo = git.get_user(user).get_repo(repo)
@@ -260,8 +275,8 @@ def build_repo_badge(user="parkerbritt", repo="open-widget-library", title=None,
     image_full_height = image_width * h / w
     image_height = min(height - bottom_padding, image_full_height) - image_padding//2
 
-    title_font_size = 25
-    subtitle_font_size = 13
+    title_font_size = 23
+    subtitle_font_size = 12
 
     icon_map = {
         "c++":"cplusplus"
@@ -327,18 +342,7 @@ def build_repo_badge(user="parkerbritt", repo="open-widget-library", title=None,
             font_size=title_font_size,
             filter=get_drop_shadow(opacity=0.8, blur=4,x=4,y=2),
             text_anchor='middle',
-            **text_kwargs,
-        )
-    )
-
-    # Subtitle
-    svg.append(
-        draw.Text(
-            elide(g_repo.description, width*0.5, subtitle_font_size)+"...",
-            x=6+image_padding//2,
-            y=height - subtitle_font_size // 2 - subtitle_height,
-            font_size=subtitle_font_size,
-            **text_kwargs,
+            **(text_kwargs | {"font_weight":600}),
         )
     )
 
@@ -397,6 +401,14 @@ def build_repo_badge(user="parkerbritt", repo="open-widget-library", title=None,
         svg.append(item["icon_fn"](icon_name, size=icon_size, x=icon_x, y=info_y, center=True, color=color))
 
         info_x = icon_x - icon_size // 2 - info_gap
+
+    # Subtitle (up to 2 lines, fits in space left by info items)
+    subtitle_x = 6 + image_padding // 2
+    line_height = int(subtitle_font_size * 1.3)
+    y = info_y
+    for line in reversed(elide_lines(g_repo.description, info_x - subtitle_x, subtitle_font_size)):
+        svg.append(draw.Text(line, x=subtitle_x, y=y, font_size=subtitle_font_size, **text_kwargs))
+        y -= line_height
 
     return svg.as_svg()
 
