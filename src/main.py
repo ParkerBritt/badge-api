@@ -206,7 +206,7 @@ def build_repo_badge(user="parkerbritt", repo="enzo", title=None, image_url=None
     text_kwargs = dict(
         font_family=FONT_FAMILY,
         fill="white",
-        dominant_baseline="middle",
+        dominant_baseline="central",
         font_weight="bold",
     )
 
@@ -313,7 +313,7 @@ def build_repo_badge(user="parkerbritt", repo="enzo", title=None, image_url=None
     # Subtitle
     svg.append(
         draw.Text(
-            elide(g_repo.description, width*0.8, subtitle_font_size)+"...",
+            elide(g_repo.description, width*0.5, subtitle_font_size)+"...",
             x=6+image_padding//2,
             y=height - subtitle_font_size // 2 - subtitle_height,
             font_size=subtitle_font_size,
@@ -321,39 +321,56 @@ def build_repo_badge(user="parkerbritt", repo="enzo", title=None, image_url=None
         )
     )
 
-    # Langauge
-    language_text_x = image_x+image_width-get_char_width(g_repo.language, subtitle_font_size)
-    language_text_y = height - subtitle_font_size // 2 - subtitle_height
-    svg.append(
-        draw.Text(
-            g_repo.language,
-            x=language_text_x,
-            y=language_text_y,
-            font_size=subtitle_font_size,
-            **text_kwargs,
-        )
-    )
-
+    # Info items (rendered right-to-left)
     icon_size = 13
     icon_padding = 4
     info_gap = 10
-    icon_name = icon_map.get(g_repo.language.lower()) or g_repo.language.lower()
-    language_icon_x = language_text_x-icon_size//2-icon_padding
-    svg.append(get_simple_icon(icon_name, size=icon_size,x=language_icon_x, y=language_text_y, center = True))
+    info_y = height - subtitle_font_size // 2 - subtitle_height
 
-    stars_text_x = language_icon_x-icon_size//2-get_char_width(str(g_repo.stargazers_count), subtitle_font_size)-info_gap
-    svg.append(
-        draw.Text(
-            str(g_repo.stargazers_count),
-            x=stars_text_x,
-            y=language_text_y,
-            font_size=subtitle_font_size,
-            **text_kwargs,
+    info_items = [
+        {
+            "icon": g_repo.language.lower(),
+            "icon_fn": get_simple_icon,
+            "text": g_repo.language,
+        },
+        {
+            "icon": "star",
+            "icon_fn": get_file_icon,
+            "text": g_repo.stargazers_count,
+            "skip_if": g_repo.stargazers_count == 0,
+        },
+        {
+            "icon": "git-branch",
+            "icon_fn": get_file_icon,
+            "text": g_repo.forks_count,
+            "skip_if": not g_repo.forks_count,
+        },
+    ]
+
+    info_x = image_x + image_width
+    for item in info_items:
+        if item.get("skip_if"):
+            continue
+
+        # Text
+        text_width = get_char_width(str(item["text"]), subtitle_font_size)
+        text_x = info_x - text_width
+        svg.append(
+            draw.Text(
+                str(item["text"]),
+                x=text_x,
+                y=info_y,
+                font_size=subtitle_font_size,
+                **text_kwargs,
+            )
         )
-    )
 
-    stars_icon_x = stars_text_x-icon_size//2-icon_padding
-    svg.append(get_file_icon("star", size=icon_size,x=stars_icon_x, y=language_text_y, center = True))
+        # Icon
+        icon_name = icon_map.get(item["icon"], item["icon"])
+        icon_x = text_x - icon_size // 2 - icon_padding
+        svg.append(item["icon_fn"](icon_name, size=icon_size, x=icon_x, y=info_y, center=True))
+
+        info_x = icon_x - icon_size // 2 - info_gap
 
     return svg.as_svg()
 
@@ -457,7 +474,7 @@ def build_standard_badge(
     text_kwargs = dict(
         font_family=FONT_FAMILY,
         fill="white",
-        dominant_baseline="middle",
+        dominant_baseline="central",
         text_rendering="geometricPrecision",
         font_weight="bold",
     )
