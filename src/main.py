@@ -12,8 +12,24 @@ from io import BytesIO
 from PIL import Image
 from dotenv import load_dotenv
 import github
+import yaml
 
 load_dotenv("conf.env")
+
+
+def load_language_colors():
+    path = os.path.join(os.path.dirname(__file__), "languages.yml")
+    with open(path) as f:
+        languages = yaml.safe_load(f)
+
+    colors = {}
+    for name, data in languages.items():
+        if isinstance(data, dict) and data.get("color"):
+            colors[name] = data["color"]
+    return colors
+
+
+LANGUAGE_COLORS = load_language_colors()
 
 auth = github.Auth.Token(os.getenv("GITHUB_TOKEN"))
 git = github.Github(auth=auth)
@@ -200,7 +216,7 @@ def elide(text: str, recommended_length,font_size) -> str:
 
     return " ".join(output)
 
-def build_repo_badge(user="parkerbritt", repo="enzo", title=None, image_url=None):
+def build_repo_badge(user="parkerbritt", repo="open-widget-library", title=None, image_url=None):
     width = 421
     height = 200
     border_width = 1
@@ -337,19 +353,21 @@ def build_repo_badge(user="parkerbritt", repo="enzo", title=None, image_url=None
             "icon": g_repo.language.lower(),
             "icon_fn": get_simple_icon,
             "text": g_repo.language,
-            "color":"red"
+            "color": LANGUAGE_COLORS.get(g_repo.language, "white"),
         },
         {
             "icon": "star",
             "icon_fn": get_file_icon,
             "text": g_repo.stargazers_count,
             "skip_if": g_repo.stargazers_count == 0,
+            "color":"#ffb300"
         },
         {
             "icon": "git-branch",
             "icon_fn": get_file_icon,
             "text": g_repo.forks_count,
             "skip_if": not g_repo.forks_count,
+            "color":"#4893ff"
         },
     ]
 
@@ -368,7 +386,7 @@ def build_repo_badge(user="parkerbritt", repo="enzo", title=None, image_url=None
                 x=text_x,
                 y=info_y,
                 font_size=subtitle_font_size,
-                **text_kwargs,
+                **(text_kwargs | {"fill": color}),
                 opacity=0.8,
             )
         )
