@@ -51,8 +51,13 @@ def get_icon(raw_svg, x=0, y=0, color="white", size=14, center=False):
     if center:
         x -= size / 2
         y -= size / 2
+    stroke_only = 'fill="none"' in raw_svg
+    style = (
+        f'fill="none" stroke="{color}" stroke-width="2" '
+        f'stroke-linecap="round" stroke-linejoin="round"'
+    ) if stroke_only else f'fill="{color}"'
     return draw.Raw(
-        f'<svg x="{x}" y="{y}" width="{size}" height="{size}" viewBox="0 0 24 24" fill="{color}">{path}</svg>'
+        f'<svg x="{x}" y="{y}" width="{size}" height="{size}" viewBox="0 0 24 24" {style}>{path}</svg>'
     )
 
 
@@ -332,6 +337,7 @@ def build_repo_badge(user="parkerbritt", repo="enzo", title=None, image_url=None
             "icon": g_repo.language.lower(),
             "icon_fn": get_simple_icon,
             "text": g_repo.language,
+            "color":"red"
         },
         {
             "icon": "star",
@@ -355,6 +361,7 @@ def build_repo_badge(user="parkerbritt", repo="enzo", title=None, image_url=None
         # Text
         text_width = get_char_width(str(item["text"]), subtitle_font_size)
         text_x = info_x - text_width
+        color=item.get("color", "white")
         svg.append(
             draw.Text(
                 str(item["text"]),
@@ -362,13 +369,14 @@ def build_repo_badge(user="parkerbritt", repo="enzo", title=None, image_url=None
                 y=info_y,
                 font_size=subtitle_font_size,
                 **text_kwargs,
+                opacity=0.8,
             )
         )
 
         # Icon
         icon_name = icon_map.get(item["icon"], item["icon"])
         icon_x = text_x - icon_size // 2 - icon_padding
-        svg.append(item["icon_fn"](icon_name, size=icon_size, x=icon_x, y=info_y, center=True))
+        svg.append(item["icon_fn"](icon_name, size=icon_size, x=icon_x, y=info_y, center=True, color=color))
 
         info_x = icon_x - icon_size // 2 - info_gap
 
