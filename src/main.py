@@ -250,7 +250,6 @@ def build_repo_badge(user="parkerbritt", repo="enzo", title=None, image_url=None
     border_width = 1
     half_border = border_width // 2
     border_radius = 20
-    bottom_padding = 80  # room for the title above the (up to 2-line) subtitle
     outer_horizontal_margin = 10
     outer_vertical_margin = 10
     content_margin = 18  # gap between the card edge and its content (text and image)
@@ -274,6 +273,7 @@ def build_repo_badge(user="parkerbritt", repo="enzo", title=None, image_url=None
     title_font_size = 23
     subtitle_font_size = 12
     subitle_text_color = "#c4c4c4"
+    max_subtitle_lines = 2
 
     icon_map = {"c++": "cplusplus"}
 
@@ -331,14 +331,22 @@ def build_repo_badge(user="parkerbritt", repo="enzo", title=None, image_url=None
 
     subtitle_x = background_x + content_margin
     line_height = int(subtitle_font_size * 1.3)
-    subtitle_bottom_y = background_y + height - content_margin - subtitle_font_size // 2
+    title_gap = 12
 
-    # Subtitle (up to 2 lines, full width since info items now sit on the title's row)
+    # The subtitle always reserves a fixed two-line-tall block, so the title above it lands
+    # in the same place whether the description wraps to one line or two.
+    subtitle_block_top = background_y + height - content_margin - subtitle_font_size // 2 - max_subtitle_lines * line_height
+    title_y = subtitle_block_top - (title_font_size - subtitle_font_size) // 2 - title_gap
+
+    # Subtitle, full width since info items now sit on the title's row.
     subtitle_lines = elide_lines(
-        g_repo.description, background_x + width - content_margin - subtitle_x, subtitle_font_size
+        g_repo.description,
+        background_x + width - content_margin - subtitle_x,
+        subtitle_font_size,
+        max_lines=max_subtitle_lines,
     )
-    y = subtitle_bottom_y
-    for line in reversed(subtitle_lines):
+    y = subtitle_block_top
+    for line in subtitle_lines:
         svg.append(
             draw.Text(
                 line,
@@ -348,11 +356,7 @@ def build_repo_badge(user="parkerbritt", repo="enzo", title=None, image_url=None
                 **(text_kwargs | {"fill": subitle_text_color}),
             )
         )
-        y -= line_height
-
-    # Title (above the subtitle)
-    title_gap = 12
-    title_y = y - (title_font_size - subtitle_font_size) // 2 - title_gap
+        y += line_height
 
     # Info items (rendered right-to-left, inline with the title)
     icon_size = 13
