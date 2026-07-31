@@ -210,9 +210,18 @@ async def badge(label: str = "", color: str = "2f2f2f", border_color: str = "717
     return response
 
 
-def blur_filter(blur=5):
+def blur_filter(blur=5, saturation=1.8):
+    """
+    Returns a gaussian blur filter, with the colour saturated back up afterwards
+    to counter the wash out that blurring causes.
+    """
     b_filter = draw.Filter(x="-10%", y="-10%", width="120%", height="120%")
-    b_filter.append(draw.FilterItem("feGaussianBlur", in_="SourceGraphic", stdDeviation=blur))
+    b_filter.append(
+        draw.FilterItem("feGaussianBlur", in_="SourceGraphic", stdDeviation=blur, result="blurred")
+    )
+    b_filter.append(
+        draw.FilterItem("feColorMatrix", in_="blurred", type="saturate", values=saturation)
+    )
     return b_filter
 
 
@@ -291,7 +300,7 @@ def build_repo_badge(user="parkerbritt", repo="enzo", title=None, image_url=None
             rx=border_radius,
             stroke="#262629",
             stroke_width=border_width,
-            filter=get_drop_shadow(opacity=0.7, blur=7, x=0, y=0),
+            filter=get_drop_shadow(opacity=0.5, blur=7, x=0, y=0),
         )
     )
 
@@ -336,7 +345,7 @@ def build_repo_badge(user="parkerbritt", repo="enzo", title=None, image_url=None
                     data=data,
                     embed=True,
                     clip_path=clip,
-                    filter=blur_filter(6),
+                    filter=blur_filter(6, saturation=1.4),
                     opacity=0.3,
                 )
             )
@@ -347,7 +356,13 @@ def build_repo_badge(user="parkerbritt", repo="enzo", title=None, image_url=None
 
     # The subtitle always reserves a fixed two-line-tall block, so the title above it lands
     # in the same place whether the description wraps to one line or two.
-    subtitle_block_top = background_y + height - content_margin - subtitle_font_size // 2 - max_subtitle_lines * line_height
+    subtitle_block_top = (
+        background_y
+        + height
+        - content_margin
+        - subtitle_font_size // 2
+        - max_subtitle_lines * line_height
+    )
     title_y = subtitle_block_top - (title_font_size - subtitle_font_size) // 2 - title_gap
 
     # Subtitle, full width since info items now sit on the title's row.
@@ -357,7 +372,7 @@ def build_repo_badge(user="parkerbritt", repo="enzo", title=None, image_url=None
         subtitle_font_size,
         max_lines=max_subtitle_lines,
     )
-    y = subtitle_block_top
+    y = subtitle_block_top + line_height
     for line in subtitle_lines:
         svg.append(
             draw.Text(
