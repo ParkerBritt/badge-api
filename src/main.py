@@ -254,6 +254,7 @@ def build_repo_badge(user="parkerbritt", repo="enzo", title=None, image_url=None
     outer_horizontal_margin = 10
     outer_vertical_margin = 10
     content_margin = 18  # gap between the card edge and its content (text and image)
+    background_color = "#12161c"
 
     text_kwargs = dict(
         font_family=FONT_FAMILY,
@@ -286,7 +287,7 @@ def build_repo_badge(user="parkerbritt", repo="enzo", title=None, image_url=None
             background_y,
             width,
             height,
-            fill="#121215",
+            fill=background_color,
             rx=border_radius,
             stroke="#262629",
             stroke_width=border_width,
@@ -312,9 +313,7 @@ def build_repo_badge(user="parkerbritt", repo="enzo", title=None, image_url=None
             image_y = background_y - (image_height - height) / 2
 
             clip = draw.ClipPath()
-            clip.append(
-                draw.Rectangle(background_x, background_y, width, height, rx=border_radius)
-            )
+            clip.append(draw.Rectangle(background_x, background_y, width, height, rx=border_radius))
 
             svg.append(
                 draw.Image(
