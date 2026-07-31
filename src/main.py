@@ -295,14 +295,26 @@ def build_repo_badge(user="parkerbritt", repo="enzo", title=None, image_url=None
         )
     )
 
-    # Background image, covering the entire card, blurred and faded
+    # Background image, covering the entire card, blurred and faded.
+    # Falls back to a repo-provided .github/thumbnail.png when no image_url is given.
+    data = None
     if image_url:
         try:
             resp = requests.get(image_url)
             resp.raise_for_status()
             data = resp.content
+        except requests.RequestException:
+            data = None
+    else:
+        try:
+            data = g_repo.get_contents(".github/thumbnail.png").decoded_content
+        except github.GithubException:
+            data = None
+
+    if data:
+        try:
             w, h = Image.open(BytesIO(data)).size
-        except (requests.RequestException, OSError):
+        except OSError:
             data = None
 
         if data:
