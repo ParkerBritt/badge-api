@@ -182,12 +182,14 @@ async def badge(label: str = "", icon: str = "", color: str = "FF4713"):
 
 
 @app.get("/repo")
-async def repo():
+async def repo(user: str, repo: str, title: Optional[str] = None, image_url: Optional[str] = None):
 
     # generate image
     svg = build_repo_badge(
-        title="Enzo",
-        image_url="https://github.com/ParkerBritt/website/raw/main/screenshots/home_page.png",
+        user=user,
+        repo=repo,
+        title=title,
+        image_url=image_url,
     )
 
     # return response
