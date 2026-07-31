@@ -33,3 +33,25 @@ def get_thumbnail(g_repo):
     except github.GithubException:
         return None
     return fetch_capped(thumbnail.download_url)
+
+
+def get_top_languages(user, limit=6):
+    """Returns a user's most-used languages, as (name, percent) pairs summing to 100.
+
+    Percentages are relative to the returned languages only.
+    """
+    totals = {}
+    for repo in _client().get_user(user).get_repos():
+        if repo.fork:
+            continue
+        for language, byte_count in repo.get_languages().items():
+            # The API response includes a "url" field alongside the real languages.
+            if not isinstance(byte_count, int):
+                continue
+            totals[language] = totals.get(language, 0) + byte_count
+
+    top = sorted(totals.items(), key=lambda item: item[1], reverse=True)[:limit]
+    total_bytes = sum(byte_count for _, byte_count in top)
+    if not total_bytes:
+        return []
+    return [(language, byte_count / total_bytes * 100) for language, byte_count in top]

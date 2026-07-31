@@ -8,6 +8,7 @@ from dotenv import load_dotenv
 from fastapi import FastAPI, Response
 
 from src.draw.badge import build_standard_badge
+from src.draw.cards.languages import build_languages_card
 from src.draw.cards.repo import build_repo_card
 from src.util.github import DEFAULT_USER
 
@@ -101,4 +102,10 @@ async def repo(
         title=title,
         image_url=image_url,
     )
+    return svg_response(svg)
+
+
+@app.get("/languages")
+async def languages(user: Optional[str] = None):
+    svg = build_languages_card(user or DEFAULT_USER)
     return svg_response(svg)
