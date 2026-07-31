@@ -295,34 +295,40 @@ def build_repo_badge(user="parkerbritt", repo="enzo", title=None, image_url=None
     )
 
     # Background image, covering the entire card, blurred and faded
-    resp = requests.get(image_url)
-    resp.raise_for_status()
+    if image_url:
+        try:
+            resp = requests.get(image_url)
+            resp.raise_for_status()
+            data = resp.content
+            w, h = Image.open(BytesIO(data)).size
+        except (requests.RequestException, OSError):
+            data = None
 
-    data = resp.content
-    w, h = Image.open(BytesIO(data)).size
+        if data:
+            scale = max(width / w, height / h)
+            image_width = w * scale
+            image_height = h * scale
+            image_x = background_x - (image_width - width) / 2
+            image_y = background_y - (image_height - height) / 2
 
-    scale = max(width / w, height / h)
-    image_width = w * scale
-    image_height = h * scale
-    image_x = background_x - (image_width - width) / 2
-    image_y = background_y - (image_height - height) / 2
+            clip = draw.ClipPath()
+            clip.append(
+                draw.Rectangle(background_x, background_y, width, height, rx=border_radius)
+            )
 
-    clip = draw.ClipPath()
-    clip.append(draw.Rectangle(background_x, background_y, width, height, rx=border_radius))
-
-    svg.append(
-        draw.Image(
-            image_x,
-            image_y,
-            image_width,
-            image_height,
-            data=data,
-            embed=True,
-            clip_path=clip,
-            filter=blur_filter(8),
-            opacity=0.3,
-        )
-    )
+            svg.append(
+                draw.Image(
+                    image_x,
+                    image_y,
+                    image_width,
+                    image_height,
+                    data=data,
+                    embed=True,
+                    clip_path=clip,
+                    filter=blur_filter(6),
+                    opacity=0.3,
+                )
+            )
 
     subtitle_x = background_x + content_margin
     line_height = int(subtitle_font_size * 1.3)
@@ -409,14 +415,16 @@ def build_repo_badge(user="parkerbritt", repo="enzo", title=None, image_url=None
 
         info_x = icon_x - icon_size // 2 - info_gap
 
-    # Title (left of the info items, same row)
-    title_text = elide(title or repo, info_x - subtitle_x, title_font_size)
+    # Title (left of the info items, same row), shrunk to fit if too wide for the badges
+    title_text = title or repo
+    title_width = info_x - subtitle_x
+    fitted_font_size = min(title_font_size, title_width / get_char_width(title_text, 1))
     svg.append(
         draw.Text(
             title_text,
             x=subtitle_x,
             y=title_y,
-            font_size=title_font_size,
+            font_size=fitted_font_size,
             **(text_kwargs | {"font_weight": 600}),
         )
     )
