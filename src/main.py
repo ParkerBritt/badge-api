@@ -1,4 +1,4 @@
-from fastapi import FastAPI, Response
+from fastapi import FastAPI, HTTPException, Response
 import os
 import re
 import colorsys, os
@@ -30,6 +30,8 @@ def load_language_colors():
 
 
 LANGUAGE_COLORS = load_language_colors()
+
+DEFAULT_USER = os.getenv("DEFAULT_USER", "")
 
 auth = github.Auth.Token(os.getenv("GITHUB_TOKEN"))
 git = github.Github(auth=auth)
@@ -182,11 +184,16 @@ async def badge(label: str = "", icon: str = "", color: str = "FF4713"):
 
 
 @app.get("/repo")
-async def repo(user: str, repo: str, title: Optional[str] = None, image_url: Optional[str] = None):
+async def repo(
+    repo: str,
+    user: Optional[str] = None,
+    title: Optional[str] = None,
+    image_url: Optional[str] = None,
+):
 
     # generate image
     svg = build_repo_badge(
-        user=user,
+        user=user or DEFAULT_USER,
         repo=repo,
         title=title,
         image_url=image_url,
@@ -272,7 +279,7 @@ def elide_lines(text, max_width, font_size, max_lines=2):
     return lines
 
 
-def build_repo_badge(user="parkerbritt", repo="enzo", title=None, image_url=None):
+def build_repo_badge(user, repo, title=None, image_url=None):
     width = 421
     height = 120
     border_width = 1
