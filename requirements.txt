@@ -4,3 +4,4 @@ simplepycons
 httpx
 drawsvg
 PyGithub
+pillow
