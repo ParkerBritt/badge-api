@@ -221,6 +221,26 @@ async def badge(label: str = "", color: str = "2f2f2f", border_color: str = "717
 MAX_BACKGROUND_BYTES = 16 * 1024 * 1024
 MAX_BACKGROUND_PIXELS = 50_000_000
 
+
+def fetch_capped(url):
+    """Returns the bytes at a URL, or None if it fails or exceeds the background size cap.
+
+    The cap is enforced while streaming, so an oversized image is abandoned partway
+    through rather than held in memory in full.
+    """
+    try:
+        resp = requests.get(url, timeout=5, stream=True)
+        resp.raise_for_status()
+        data = b""
+        for chunk in resp.iter_content(64 * 1024):
+            data += chunk
+            if len(data) > MAX_BACKGROUND_BYTES:
+                return None
+        return data
+    except requests.RequestException:
+        return None
+
+
 # The background is stored this many times smaller than the card and scaled back up on
 # display. The averaging that involves is what clears out JPEG block artifacts.
 BACKGROUND_DOWNSCALE = 4
@@ -332,22 +352,12 @@ def build_repo_badge(user, repo, title=None, image_url=None):
 
     # Background image, covering the entire card, blurred and faded.
     # Falls back to a repo-provided .github/thumbnail.png when no image_url is given.
-    data = None
     if image_url:
-        try:
-            resp = requests.get(image_url, timeout=5, stream=True)
-            resp.raise_for_status()
-            data = b""
-            for chunk in resp.iter_content(64 * 1024):
-                data += chunk
-                if len(data) > MAX_BACKGROUND_BYTES:
-                    data = None
-                    break
-        except requests.RequestException:
-            data = None
+        data = fetch_capped(image_url)
     else:
         try:
-            data = g_repo.get_contents(".github/thumbnail.png").decoded_content
+            thumbnail = g_repo.get_contents(".github/thumbnail.png")
+            data = fetch_capped(thumbnail.download_url)
         except github.GithubException:
             data = None
 
