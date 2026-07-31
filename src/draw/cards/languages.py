@@ -78,7 +78,9 @@ def draw_language_row(svg, name, pct, x, y, width):
     """Draws one language's icon, name and percentage within its grid cell."""
     color = LANGUAGE_COLORS.get(name, "white")
     icon_name = ICON_NAMES.get(name.lower(), name.lower())
-    svg.append(get_simple_icon(icon_name, x=x, y=y, size=ICON_SIZE, color=color, center=True))
+    svg.append(
+        get_simple_icon(icon_name, x=x + ICON_SIZE / 2, y=y, size=ICON_SIZE, color=color, center=True)
+    )
 
     text_x = x + ICON_SIZE + 9
     svg.append(
