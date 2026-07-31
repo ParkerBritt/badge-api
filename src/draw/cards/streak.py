@@ -9,15 +9,15 @@ from src.draw.shapes import new_card
 from src.draw.theme import STYLE, TEXT
 from src.util import github
 
-CARD_WIDTH = 495
+CARD_WIDTH = 421
 PADDING_X = 24
 PADDING_Y = 20
 COL_GAP_Y = 6
 
 NUMBER_SIZE = 23
 LABEL_SIZE = 10
-RANGE_SIZE = 10.5
-RANGE_MARGIN_TOP = 3
+RANGE_SIZE = 9.5
+RANGE_MARGIN_TOP = 2
 
 RING_SIZE = 92
 RING_STROKE = 8
