@@ -9,7 +9,7 @@ import colorsys
 import drawsvg as draw
 import requests
 from io import BytesIO
-from PIL import Image
+from PIL import Image, ImageEnhance, ImageFilter, ImageOps
 from dotenv import load_dotenv
 import github
 import yaml
@@ -210,19 +210,38 @@ async def badge(label: str = "", color: str = "2f2f2f", border_color: str = "717
     return response
 
 
-def blur_filter(blur=5, saturation=1.8):
+# Limits on background images, which can come from a caller-supplied URL.
+MAX_BACKGROUND_BYTES = 16 * 1024 * 1024
+MAX_BACKGROUND_PIXELS = 50_000_000
+
+# The background is stored this many times smaller than the card and scaled back up on
+# display. The averaging that involves is what clears out JPEG block artifacts.
+BACKGROUND_DOWNSCALE = 4
+
+
+def prepare_background_image(data, width, height, blur=6, saturation=1.4):
     """
-    Returns a gaussian blur filter, with the colour saturated back up afterwards
-    to counter the wash out that blurring causes.
+    Returns PNG bytes of an image cropped to fill a width by height card, blurred and
+    saturated, ready to embed as a card background.
+
+    Note: blur is in card pixels, so it means the same thing whatever
+    BACKGROUND_DOWNSCALE is.
     """
-    b_filter = draw.Filter(x="-10%", y="-10%", width="120%", height="120%")
-    b_filter.append(
-        draw.FilterItem("feGaussianBlur", in_="SourceGraphic", stdDeviation=blur, result="blurred")
+    image = Image.open(BytesIO(data))
+    if image.width * image.height > MAX_BACKGROUND_PIXELS:
+        raise ValueError(f"background image too large: {image.width}x{image.height}")
+
+    image = ImageOps.fit(
+        image.convert("RGB"),
+        (width // BACKGROUND_DOWNSCALE, height // BACKGROUND_DOWNSCALE),
+        method=Image.LANCZOS,
     )
-    b_filter.append(
-        draw.FilterItem("feColorMatrix", in_="blurred", type="saturate", values=saturation)
-    )
-    return b_filter
+    image = image.filter(ImageFilter.GaussianBlur(blur / BACKGROUND_DOWNSCALE))
+    image = ImageEnhance.Color(image).enhance(saturation)
+
+    buffer = BytesIO()
+    image.save(buffer, format="PNG")
+    return buffer.getvalue()
 
 
 def elide(text: str, recommended_length, font_size) -> str:
@@ -309,9 +328,14 @@ def build_repo_badge(user="parkerbritt", repo="enzo", title=None, image_url=None
     data = None
     if image_url:
         try:
-            resp = requests.get(image_url)
+            resp = requests.get(image_url, timeout=5, stream=True)
             resp.raise_for_status()
-            data = resp.content
+            data = b""
+            for chunk in resp.iter_content(64 * 1024):
+                data += chunk
+                if len(data) > MAX_BACKGROUND_BYTES:
+                    data = None
+                    break
         except requests.RequestException:
             data = None
     else:
@@ -322,30 +346,25 @@ def build_repo_badge(user="parkerbritt", repo="enzo", title=None, image_url=None
 
     if data:
         try:
-            w, h = Image.open(BytesIO(data)).size
-        except OSError:
-            data = None
+            background = prepare_background_image(data, width, height)
+        except (OSError, ValueError):
+            background = None
 
-        if data:
-            scale = max(width / w, height / h)
-            image_width = w * scale
-            image_height = h * scale
-            image_x = background_x - (image_width - width) / 2
-            image_y = background_y - (image_height - height) / 2
-
+        if background:
             clip = draw.ClipPath()
             clip.append(draw.Rectangle(background_x, background_y, width, height, rx=border_radius))
 
             svg.append(
                 draw.Image(
-                    image_x,
-                    image_y,
-                    image_width,
-                    image_height,
-                    data=data,
+                    background_x,
+                    background_y,
+                    width,
+                    height,
+                    data=background,
                     embed=True,
+                    mime_type="image/png",
+                    preserveAspectRatio="none",
                     clip_path=clip,
-                    filter=blur_filter(6, saturation=1.4),
                     opacity=0.3,
                 )
             )
