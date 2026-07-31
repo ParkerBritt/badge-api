@@ -250,7 +250,8 @@ def build_repo_badge(user="parkerbritt", repo="enzo", title=None, image_url=None
     border_width = 1
     half_border = border_width // 2
     border_radius = 20
-    bottom_padding = 45
+    image_radius = 14
+    bottom_padding = 80  # room for the title above the (up to 2-line) subtitle
     horizontal_margin = 10
     vertical_margin = 10
 
@@ -272,8 +273,7 @@ def build_repo_badge(user="parkerbritt", repo="enzo", title=None, image_url=None
     title_font_size = 23
     subtitle_font_size = 12
     subitle_text_color = "#c4c4c4"
-
-    image_padding = 20
+    content_margin = 14  # gap between the card edge and its content (text and image)
 
     icon_map = {"c++": "cplusplus"}
 
@@ -302,11 +302,11 @@ def build_repo_badge(user="parkerbritt", repo="enzo", title=None, image_url=None
     data = resp.content
     w, h = Image.open(BytesIO(data)).size
 
-    image_x = background_x + image_padding // 2
-    image_y = background_y + image_padding // 2
-    image_width = width - half_border - image_padding
+    image_x = background_x + content_margin
+    image_y = background_y + content_margin
+    image_width = width - half_border - content_margin * 2
     image_full_height = image_width * h / w
-    image_height = min(height - bottom_padding, image_full_height) - image_padding // 2
+    image_height = min(height - bottom_padding, image_full_height) - content_margin
     clip = draw.ClipPath()
     clip.append(
         draw.Rectangle(
@@ -314,7 +314,7 @@ def build_repo_badge(user="parkerbritt", repo="enzo", title=None, image_url=None
             image_y,
             image_width,
             image_height,
-            rx=border_radius,
+            rx=image_radius,
         )
     )
 
@@ -340,31 +340,41 @@ def build_repo_badge(user="parkerbritt", repo="enzo", title=None, image_url=None
             data=data,
             embed=True,
             clip_path=clip,
-            filter=blur_filter(8),
         )
     )
 
-    # Title text
-    title_height = 20
-    subtitle_height = 10
+    subtitle_x = background_x + content_margin
+    line_height = int(subtitle_font_size * 1.3)
+    subtitle_bottom_y = background_y + height - content_margin - subtitle_font_size // 2
 
-    svg.append(
-        draw.Text(
-            title or repo,
-            x=image_x + image_width // 2,
-            y=image_y + image_height // 2,
-            font_size=title_font_size,
-            filter=get_drop_shadow(opacity=0.8, blur=4, x=4, y=2),
-            text_anchor="middle",
-            **(text_kwargs | {"font_weight": 600}),
-        )
+    # Subtitle (up to 2 lines, full width since info items now sit on the title's row)
+    subtitle_lines = elide_lines(
+        g_repo.description, image_x + image_width - subtitle_x, subtitle_font_size
     )
+    y = subtitle_bottom_y
+    for line in reversed(subtitle_lines):
+        svg.append(
+            draw.Text(
+                line,
+                x=subtitle_x,
+                y=y,
+                font_size=subtitle_font_size,
+                **(text_kwargs | {"fill": subitle_text_color}),
+            )
+        )
+        y -= line_height
 
-    # Info items (rendered right-to-left)
+    # Title (above the subtitle)
+    title_gap = 8
+    title_y = y - (title_font_size - subtitle_font_size) // 2 - title_gap
+
+    # Info items (rendered right-to-left, inline with the title)
     icon_size = 13
     icon_padding = 4
     info_gap = 10
-    info_y = background_x + height - subtitle_font_size // 2 - subtitle_height
+    info_y = (
+        title_y + (title_font_size - subtitle_font_size) // 4
+    )  # bottom-align badges with the title
 
     info_items = [
         {
@@ -418,13 +428,17 @@ def build_repo_badge(user="parkerbritt", repo="enzo", title=None, image_url=None
 
         info_x = icon_x - icon_size // 2 - info_gap
 
-    # Subtitle (up to 2 lines, fits in space left by info items)
-    subtitle_x = background_x + 6 + image_padding // 2
-    line_height = int(subtitle_font_size * 1.3)
-    y = info_y
-    for line in reversed(elide_lines(g_repo.description, info_x - subtitle_x, subtitle_font_size)):
-        svg.append(draw.Text(line, x=subtitle_x, y=y, font_size=subtitle_font_size, **(text_kwargs | {"fill": subitle_text_color})))
-        y -= line_height
+    # Title (left of the info items, same row)
+    title_text = elide(title or repo, info_x - subtitle_x, title_font_size)
+    svg.append(
+        draw.Text(
+            title_text,
+            x=subtitle_x,
+            y=title_y,
+            font_size=title_font_size,
+            **(text_kwargs | {"font_weight": 600}),
+        )
+    )
 
     return svg.as_svg()
 
