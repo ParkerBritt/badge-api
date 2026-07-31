@@ -246,14 +246,14 @@ def elide_lines(text, max_width, font_size, max_lines=2):
 
 def build_repo_badge(user="parkerbritt", repo="enzo", title=None, image_url=None):
     width = 421
-    height = 180
+    height = 120
     border_width = 1
     half_border = border_width // 2
     border_radius = 20
-    image_radius = 14
     bottom_padding = 80  # room for the title above the (up to 2-line) subtitle
-    horizontal_margin = 10
-    vertical_margin = 10
+    outer_horizontal_margin = 10
+    outer_vertical_margin = 10
+    content_margin = 18  # gap between the card edge and its content (text and image)
 
     text_kwargs = dict(
         font_family=FONT_FAMILY,
@@ -265,20 +265,19 @@ def build_repo_badge(user="parkerbritt", repo="enzo", title=None, image_url=None
     g_repo = git.get_user(user).get_repo(repo)
 
     svg = draw.Drawing(
-        width + border_width + horizontal_margin * 2,
-        height + border_width + vertical_margin * 2,
+        width + border_width + outer_horizontal_margin * 2,
+        height + border_width + outer_vertical_margin * 2,
         origin=(0, 0),
     )
 
     title_font_size = 23
     subtitle_font_size = 12
     subitle_text_color = "#c4c4c4"
-    content_margin = 14  # gap between the card edge and its content (text and image)
 
     icon_map = {"c++": "cplusplus"}
 
-    background_x = horizontal_margin + half_border
-    background_y = vertical_margin + half_border
+    background_x = outer_horizontal_margin + half_border
+    background_y = outer_vertical_margin + half_border
 
     # Background
     svg.append(
@@ -295,51 +294,33 @@ def build_repo_badge(user="parkerbritt", repo="enzo", title=None, image_url=None
         )
     )
 
-    # Image mask
+    # Background image, covering the entire card, blurred and faded
     resp = requests.get(image_url)
     resp.raise_for_status()
 
     data = resp.content
     w, h = Image.open(BytesIO(data)).size
 
-    image_x = background_x + content_margin
-    image_y = background_y + content_margin
-    image_width = width - half_border - content_margin * 2
-    image_full_height = image_width * h / w
-    image_height = min(height - bottom_padding, image_full_height) - content_margin
+    scale = max(width / w, height / h)
+    image_width = w * scale
+    image_height = h * scale
+    image_x = background_x - (image_width - width) / 2
+    image_y = background_y - (image_height - height) / 2
+
     clip = draw.ClipPath()
-    clip.append(
-        draw.Rectangle(
-            image_x,
-            image_y,
-            image_width,
-            image_height,
-            rx=image_radius,
-        )
-    )
+    clip.append(draw.Rectangle(background_x, background_y, width, height, rx=border_radius))
 
-    # Image Background
-    svg.append(
-        draw.Rectangle(
-            image_x,
-            image_y,
-            image_width,
-            image_height,
-            rx=border_radius,
-            filter=get_drop_shadow(opacity=0.8, blur=4, x=2, y=2),
-        )
-    )
-
-    # Image
     svg.append(
         draw.Image(
             image_x,
             image_y,
             image_width,
-            image_full_height,
+            image_height,
             data=data,
             embed=True,
             clip_path=clip,
+            filter=blur_filter(8),
+            opacity=0.3,
         )
     )
 
@@ -349,7 +330,7 @@ def build_repo_badge(user="parkerbritt", repo="enzo", title=None, image_url=None
 
     # Subtitle (up to 2 lines, full width since info items now sit on the title's row)
     subtitle_lines = elide_lines(
-        g_repo.description, image_x + image_width - subtitle_x, subtitle_font_size
+        g_repo.description, background_x + width - content_margin - subtitle_x, subtitle_font_size
     )
     y = subtitle_bottom_y
     for line in reversed(subtitle_lines):
@@ -365,7 +346,7 @@ def build_repo_badge(user="parkerbritt", repo="enzo", title=None, image_url=None
         y -= line_height
 
     # Title (above the subtitle)
-    title_gap = 8
+    title_gap = 12
     title_y = y - (title_font_size - subtitle_font_size) // 2 - title_gap
 
     # Info items (rendered right-to-left, inline with the title)
@@ -399,7 +380,7 @@ def build_repo_badge(user="parkerbritt", repo="enzo", title=None, image_url=None
         },
     ]
 
-    info_x = image_x + image_width
+    info_x = background_x + width - content_margin
     for item in info_items:
         if item.get("skip_if"):
             continue
