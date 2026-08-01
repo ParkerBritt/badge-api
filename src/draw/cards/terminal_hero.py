@@ -202,7 +202,17 @@ def _wipe_reveal_down(svg, x, y, width, height, delay, duration):
 
 def draw_title_bar(svg, x, y, width, title):
     """Draws the terminal window's title bar: three traffic-light dots and a title."""
-    svg.append(draw.Rectangle(x, y, width, HEADER_HEIGHT, fill="#0d1117"))
+    r = BORDER_RADIUS
+    bar = draw.Path(fill="#0d1117")
+    bar.M(x + r, y)
+    bar.H(x + width - r)
+    bar.A(r, r, 0, 0, 1, x + width, y + r)
+    bar.V(y + HEADER_HEIGHT)
+    bar.H(x)
+    bar.V(y + r)
+    bar.A(r, r, 0, 0, 1, x + r, y)
+    bar.Z()
+    svg.append(bar)
     svg.append(
         draw.Line(
             x,
