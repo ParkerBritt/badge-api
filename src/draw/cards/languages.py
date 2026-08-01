@@ -38,9 +38,21 @@ def draw_language_bar(svg, languages, x, y, width):
     """Draws a row of rounded segments sized to each language's share."""
     gap_count = len(languages) - 1
     segment_total = width - gap_count * BAR_GAP
+
+    def raw_width(pct):
+        return segment_total * pct / 100
+
+    small_pct_total = sum(pct for _, pct in languages if raw_width(pct) < BAR_HEIGHT)
+    small_count = sum(1 for _, pct in languages if raw_width(pct) < BAR_HEIGHT)
+    flexible_width = segment_total - small_count * BAR_HEIGHT
+    flexible_pct_total = sum(pct for _, pct in languages) - small_pct_total
+
     seg_x = x
     for name, pct in languages:
-        seg_width = segment_total * pct / 100
+        if raw_width(pct) < BAR_HEIGHT:
+            seg_width = BAR_HEIGHT
+        else:
+            seg_width = flexible_width * pct / flexible_pct_total
         svg.append(
             draw.Rectangle(
                 seg_x,
