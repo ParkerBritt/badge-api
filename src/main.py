@@ -11,6 +11,7 @@ from src.draw.badge import build_standard_badge
 from src.draw.cards.button import build_button_card
 from src.draw.cards.languages import build_languages_card
 from src.draw.cards.repo import build_repo_card
+from src.draw.cards.spacer import build_spacer_card
 from src.draw.cards.streak import build_streak_card
 from src.util.github import DEFAULT_USER
 
@@ -89,6 +90,11 @@ async def badge(label: str = "", icon: str = "", color: str = "FF4713"):
 @app.get("/button")
 async def button(label: str = ""):
     return svg_response(build_button_card(label=label))
+
+
+@app.get("/spacer")
+async def spacer(width: int = 20, height: int = 1):
+    return svg_response(build_spacer_card(width=width, height=height))
 
 
 @app.get("/repo")
