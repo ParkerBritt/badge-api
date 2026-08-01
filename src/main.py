@@ -13,6 +13,7 @@ from src.draw.cards.languages import build_languages_card
 from src.draw.cards.repo import build_repo_card
 from src.draw.cards.spacer import build_spacer_card
 from src.draw.cards.streak import build_streak_card
+from src.draw.cards.terminal_hero import build_terminal_hero_card
 from src.util.github import DEFAULT_USER
 
 load_dotenv("conf.env")
@@ -122,4 +123,33 @@ async def languages(user: Optional[str] = None):
 @app.get("/streak")
 async def streak(user: Optional[str] = None):
     svg = build_streak_card(user or DEFAULT_USER)
+    return svg_response(svg)
+
+
+@app.get("/terminal_hero")
+async def terminal_hero(
+    name: Optional[str] = None,
+    username: Optional[str] = None,
+    role: Optional[str] = None,
+    stack: Optional[str] = None,
+    uptime: Optional[str] = None,
+    contact: Optional[str] = None,
+    terminal_title: Optional[str] = None,
+    command: Optional[str] = None,
+    info_offset_x: Optional[int] = None,
+    info_offset_y: Optional[int] = None,
+):
+    kwargs = {
+        "name": name,
+        "username": username,
+        "role": role,
+        "stack": stack,
+        "uptime": uptime,
+        "contact": contact,
+        "terminal_title": terminal_title,
+        "command": command,
+        "info_offset_x": info_offset_x,
+        "info_offset_y": info_offset_y,
+    }
+    svg = build_terminal_hero_card(**{k: v for k, v in kwargs.items() if v is not None})
     return svg_response(svg)
