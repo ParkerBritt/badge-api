@@ -3,7 +3,7 @@
 import drawsvg as draw
 
 from src.draw.icons import get_simple_icon
-from src.draw.shapes import new_card
+from src.draw.shapes import card_clip, draw_glow, new_card
 from src.draw.theme import STYLE, TEXT
 from src.util import github
 from src.util.languages import LANGUAGE_COLORS
@@ -23,35 +23,15 @@ ICON_SIZE = 17
 TEXT_SIZE = 12
 MAX_LANGUAGES = 6
 
-# Controls for the corner glow's size and softness.
-GLOW_RADIUS = 140
-GLOW_BLUR = 0
+# Position and size of the corner glow, relative to the card's top left corner.
+SHOW_GLOW = False
+GLOW_CENTER_X = 60
+GLOW_CENTER_Y = 40
+GLOW_RADIUS = 200
 
 # SimpleIcons names for languages GitHub spells differently, or where the
 # obvious slug collides with an unrelated brand (e.g. "shell" is a gas company).
 ICON_NAMES = {"c++": "cplusplus", "shell": "gnubash"}
-
-
-def draw_glow(svg, card_x, card_y, card_width, card_height, radius=140, blur=0):
-    """Draws the soft blue glow behind the card's top left corner, clipped to its rounded bounds."""
-    center_x = card_x - 80 + radius
-    center_y = card_y - 100 + radius
-
-    gradient = draw.RadialGradient(center_x, center_y, radius)
-    gradient.add_stop(0, "#58a6ff", opacity=0.16)
-    gradient.add_stop(0.55, "#58a6ff", opacity=0.05)
-    gradient.add_stop(1, "#58a6ff", opacity=0)
-
-    clip = draw.ClipPath()
-    clip.append(draw.Rectangle(card_x, card_y, card_width, card_height, rx=STYLE["border_radius"]))
-
-    extra = {}
-    if blur:
-        blur_filter = draw.Filter(x="-50%", y="-50%", width="200%", height="200%")
-        blur_filter.append(draw.FilterItem("feGaussianBlur", stdDeviation=blur))
-        extra["filter"] = blur_filter
-
-    svg.append(draw.Circle(center_x, center_y, radius, fill=gradient, clip_path=clip, **extra))
 
 
 def draw_language_bar(svg, languages, x, y, width):
@@ -79,7 +59,9 @@ def draw_language_row(svg, name, pct, x, y, width):
     color = LANGUAGE_COLORS.get(name, "white")
     icon_name = ICON_NAMES.get(name.lower(), name.lower())
     svg.append(
-        get_simple_icon(icon_name, x=x + ICON_SIZE / 2, y=y, size=ICON_SIZE, color=color, center=True)
+        get_simple_icon(
+            icon_name, x=x + ICON_SIZE / 2, y=y, size=ICON_SIZE, color=color, center=True
+        )
     )
 
     text_x = x + ICON_SIZE + 9
@@ -122,7 +104,10 @@ def build_languages_card(user):
         )
 
     svg, card_x, card_y = new_card(CARD_WIDTH, height)
-    draw_glow(svg, card_x, card_y, CARD_WIDTH, height, radius=GLOW_RADIUS, blur=GLOW_BLUR)
+    if SHOW_GLOW:
+        clip = card_clip(card_x, card_y, CARD_WIDTH, height)
+        center = (card_x + GLOW_CENTER_X, card_y + GLOW_CENTER_Y)
+        draw_glow(svg, clip, center, GLOW_RADIUS, "#58a6ff", opacity=0.04)
 
     content_x = card_x + PADDING_X
     content_width = CARD_WIDTH - PADDING_X * 2

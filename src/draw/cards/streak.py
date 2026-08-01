@@ -5,8 +5,8 @@ import uuid
 
 import drawsvg as draw
 
-from src.draw.shapes import new_card
-from src.draw.theme import STYLE, TEXT
+from src.draw.shapes import card_clip, draw_glow, new_card
+from src.draw.theme import TEXT
 from src.util import github
 
 CARD_WIDTH = 421
@@ -29,25 +29,24 @@ FLAME_PATH = (
     "M12 3q1 4 4 6.5t3 5.5a1 1 0 0 1-14 0 5 5 0 0 1 1-3 1 1 0 0 0 5 0c0-2-1.5-3-1.5-5q0-2 2.5-4"
 )
 
+SHOW_GLOW = False
+GLOW_RADIUS = 200
+
 DIVIDER_HEIGHT = 78
 
-SIDE_COLUMN_HEIGHT = NUMBER_SIZE + COL_GAP_Y + LABEL_SIZE + COL_GAP_Y + RANGE_MARGIN_TOP + RANGE_SIZE
+SIDE_COLUMN_HEIGHT = (
+    NUMBER_SIZE + COL_GAP_Y + LABEL_SIZE + COL_GAP_Y + RANGE_MARGIN_TOP + RANGE_SIZE
+)
 CENTER_COLUMN_HEIGHT = (
-    RING_SIZE + RING_MARGIN_BOTTOM + COL_GAP_Y + LABEL_SIZE + COL_GAP_Y + RANGE_MARGIN_TOP + RANGE_SIZE
+    RING_SIZE
+    + RING_MARGIN_BOTTOM
+    + COL_GAP_Y
+    + LABEL_SIZE
+    + COL_GAP_Y
+    + RANGE_MARGIN_TOP
+    + RANGE_SIZE
 )
 ROW_HEIGHT = max(SIDE_COLUMN_HEIGHT, CENTER_COLUMN_HEIGHT)
-
-
-def draw_glow(svg, card_x, card_y, card_width, card_height, center_x, center_y, radius, color, stops):
-    """Draws a soft radial glow, clipped to the card's rounded bounds."""
-    gradient = draw.RadialGradient(center_x, center_y, radius)
-    for offset, opacity in stops:
-        gradient.add_stop(offset, color, opacity=opacity)
-
-    clip = draw.ClipPath()
-    clip.append(draw.Rectangle(card_x, card_y, card_width, card_height, rx=STYLE["border_radius"]))
-
-    svg.append(draw.Circle(center_x, center_y, radius, fill=gradient, clip_path=clip))
 
 
 def draw_divider(svg, x, center_y, height):
@@ -57,7 +56,11 @@ def draw_divider(svg, x, center_y, height):
     gradient.add_stop(0.2, "#262629", opacity=1)
     gradient.add_stop(0.8, "#262629", opacity=1)
     gradient.add_stop(1, "#262629", opacity=0)
-    svg.append(draw.Line(x, center_y - height / 2, x, center_y + height / 2, stroke=gradient, stroke_width=1))
+    svg.append(
+        draw.Line(
+            x, center_y - height / 2, x, center_y + height / 2, stroke=gradient, stroke_width=1
+        )
+    )
 
 
 def draw_flame(svg, x, y, size, color):
@@ -101,7 +104,10 @@ def draw_streak_ring(svg, center_x, center_y, current, longest):
     glow.add_stop(0.72, "#ff8a3d", opacity=0)
     svg.append(
         draw.Circle(
-            center_x, center_y, outer_radius, fill=glow,
+            center_x,
+            center_y,
+            outer_radius,
+            fill=glow,
             style=f"animation: streakGlow 2.6s ease-in-out infinite; transform-origin: {center_x}px {center_y}px;",
         )
     )
@@ -110,21 +116,38 @@ def draw_streak_ring(svg, center_x, center_y, current, longest):
     ring = draw.Group(transform=f"rotate(-90 {center_x} {center_y})")
     ring.append(
         draw.Circle(
-            center_x, center_y, r, fill="none", stroke="#2a2118", stroke_width=RING_STROKE,
-            stroke_linecap="round", stroke_dasharray=f"{usable:.2f} {RING_GAP:.2f}",
+            center_x,
+            center_y,
+            r,
+            fill="none",
+            stroke="#2a2118",
+            stroke_width=RING_STROKE,
+            stroke_linecap="round",
+            stroke_dasharray=f"{usable:.2f} {RING_GAP:.2f}",
             stroke_dashoffset=f"{dash_offset:.2f}",
         )
     )
     progress_circle = draw.Circle(
-        center_x, center_y, r, fill="none", stroke="#ff8a3d", stroke_width=RING_STROKE,
-        stroke_linecap="round", stroke_dasharray=f"0 {circumference:.2f}",
+        center_x,
+        center_y,
+        r,
+        fill="none",
+        stroke="#ff8a3d",
+        stroke_width=RING_STROKE,
+        stroke_linecap="round",
+        stroke_dasharray=f"0 {circumference:.2f}",
         stroke_dashoffset=f"{dash_offset:.2f}",
     )
     progress_circle.append_anim(
         draw.Animate(
-            "stroke-dasharray", "1.4s", f"0 {circumference:.2f}",
-            to=f"{progress_len:.2f} {circumference - progress_len:.2f}", fill="freeze",
-            calcMode="spline", keySplines="0.33 1 0.68 1", keyTimes="0;1",
+            "stroke-dasharray",
+            "1.4s",
+            f"0 {circumference:.2f}",
+            to=f"{progress_len:.2f} {circumference - progress_len:.2f}",
+            fill="freeze",
+            calcMode="spline",
+            keySplines="0.33 1 0.68 1",
+            keyTimes="0;1",
         )
     )
     ring.append(progress_circle)
@@ -136,7 +159,9 @@ def draw_streak_ring(svg, center_x, center_y, current, longest):
 def draw_stat_column(svg, value, label, date_range, center_x, top_y, elem_id=None):
     """Draws a plain stat column: a big number over its label and date range."""
     y = top_y + NUMBER_SIZE / 2
-    draw_centered_text(svg, value, center_x, y, NUMBER_SIZE, "#e8e8ea", font_weight=700, elem_id=elem_id)
+    draw_centered_text(
+        svg, value, center_x, y, NUMBER_SIZE, "#e8e8ea", font_weight=700, elem_id=elem_id
+    )
 
     y += NUMBER_SIZE / 2 + COL_GAP_Y + LABEL_SIZE / 2
     draw_centered_text(svg, label.upper(), center_x, y, LABEL_SIZE, "#8a8f98", font_weight=600)
@@ -150,8 +175,14 @@ def draw_current_streak_column(svg, stats, center_x, top_y, elem_id=None):
     ring_center_y = top_y + RING_SIZE / 2
     draw_streak_ring(svg, center_x, ring_center_y, stats["current_streak"], stats["longest_streak"])
     draw_centered_text(
-        svg, str(stats["current_streak"]), center_x, ring_center_y, CURRENT_NUMBER_SIZE, "#ff8a3d",
-        font_weight=700, elem_id=elem_id,
+        svg,
+        str(stats["current_streak"]),
+        center_x,
+        ring_center_y,
+        CURRENT_NUMBER_SIZE,
+        "#ff8a3d",
+        font_weight=700,
+        elem_id=elem_id,
     )
 
     y = top_y + RING_SIZE + RING_MARGIN_BOTTOM + COL_GAP_Y + LABEL_SIZE / 2
@@ -176,14 +207,14 @@ def build_streak_card(user):
         )
     )
 
-    draw_glow(
-        svg, card_x, card_y, CARD_WIDTH, height, card_x + CARD_WIDTH + 50, card_y + 50, 150,
-        "#ff8a3d", [(0, 0.08), (0.55, 0.025), (0.75, 0)],
-    )
-    draw_glow(
-        svg, card_x, card_y, CARD_WIDTH, height, card_x + 60, card_y + height - 30, 140,
-        "#58a6ff", [(0, 0.055), (0.55, 0.015), (0.75, 0)],
-    )
+    if SHOW_GLOW:
+        clip = card_clip(card_x, card_y, CARD_WIDTH, height)
+        draw_glow(
+            svg, clip, (card_x + CARD_WIDTH + 50, card_y + 50), GLOW_RADIUS, "#ff8a3d", opacity=0.04
+        )
+        draw_glow(
+            svg, clip, (card_x + 60, card_y + height - 30), GLOW_RADIUS, "#58a6ff", opacity=0.03
+        )
 
     content_x = card_x + PADDING_X
     content_width = CARD_WIDTH - PADDING_X * 2
@@ -202,14 +233,24 @@ def build_streak_card(user):
     total_id, current_id, longest_id = f"total-{uid}", f"current-{uid}", f"longest-{uid}"
 
     draw_stat_column(
-        svg, f"{stats['total_contributions']:,}", "Total Contributions", stats["total_range"], col1_x, side_top,
+        svg,
+        f"{stats['total_contributions']:,}",
+        "Total Contributions",
+        stats["total_range"],
+        col1_x,
+        side_top,
         elem_id=total_id,
     )
     draw_divider(svg, divider1_x, divider_center_y, DIVIDER_HEIGHT)
     draw_current_streak_column(svg, stats, col2_x, row_top, elem_id=current_id)
     draw_divider(svg, divider2_x, divider_center_y, DIVIDER_HEIGHT)
     draw_stat_column(
-        svg, str(stats["longest_streak"]), "Longest Streak", stats["longest_range"], col3_x, side_top,
+        svg,
+        str(stats["longest_streak"]),
+        "Longest Streak",
+        stats["longest_range"],
+        col3_x,
+        side_top,
         elem_id=longest_id,
     )
 

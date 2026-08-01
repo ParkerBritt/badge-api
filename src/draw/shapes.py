@@ -25,6 +25,27 @@ def get_drop_shadow(opacity=0.3, color="black", blur=1.8, x=2, y=2):
     return shadow
 
 
+def card_clip(card_x, card_y, width, height):
+    """Returns a clip path matching a card's rounded rectangle bounds."""
+    clip = draw.ClipPath()
+    clip.append(draw.Rectangle(card_x, card_y, width, height, rx=STYLE["border_radius"]))
+    return clip
+
+
+def draw_glow(svg, clip_path, center, radius, color, opacity=0.15):
+    """Draws a soft radial glow of the given color, clipped to `clip_path`.
+
+    The glow fades from `opacity` at its center to fully transparent at its edge.
+    """
+    center_x, center_y = center
+    gradient = draw.RadialGradient(center_x, center_y, radius)
+    gradient.add_stop(0, color, opacity=opacity)
+    gradient.add_stop(0.55, color, opacity=opacity * 0.3)
+    gradient.add_stop(1, color, opacity=0)
+
+    svg.append(draw.Circle(center_x, center_y, radius, fill=gradient, clip_path=clip_path))
+
+
 def new_card(width, height):
     """Returns a drawing with the card's rounded background in place, plus its top left corner."""
     border_width = STYLE["border_width"]
