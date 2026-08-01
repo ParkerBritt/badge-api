@@ -8,6 +8,7 @@ from dotenv import load_dotenv
 from fastapi import FastAPI, Response
 
 from src.draw.badge import build_standard_badge
+from src.draw.cards.button import build_button_card
 from src.draw.cards.languages import build_languages_card
 from src.draw.cards.repo import build_repo_card
 from src.draw.cards.streak import build_streak_card
@@ -86,8 +87,8 @@ async def badge(label: str = "", icon: str = "", color: str = "FF4713"):
 
 
 @app.get("/button")
-async def button(label: str = "", color: str = "2f2f2f", border_color: str = "717171"):
-    return svg_response(build_standard_badge(label=label, color=color, border_color=border_color))
+async def button(label: str = ""):
+    return svg_response(build_button_card(label=label))
 
 
 @app.get("/repo")
