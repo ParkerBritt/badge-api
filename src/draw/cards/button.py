@@ -8,8 +8,8 @@ from src.util.text import get_char_width
 
 HEIGHT = 30
 FONT_SIZE = 13
-BORDER_RADIUS = 15
-MARGIN_X = 13
+BORDER_RADIUS = 10
+MARGIN_X = 11
 MARGIN_Y = 5
 SHADOW_BLUR = 3
 SHADOW_OPACITY = 0.4
