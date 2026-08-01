@@ -1,7 +1,6 @@
 """Draws the card showing a user's contribution streak."""
 
 import math
-import uuid
 
 import drawsvg as draw
 
@@ -33,6 +32,15 @@ SHOW_GLOW = False
 GLOW_RADIUS = 200
 
 DIVIDER_HEIGHT = 78
+
+DIGIT_WIDTH_RATIO = 0.62  # a monospace digit's advance width, as a fraction of its font size
+DIGIT_ROLL_HEIGHT_RATIO = 1.3  # vertical spacing between stacked digits on a rolling wheel
+DIGIT_ROLL_BASE_MS = 850
+DIGIT_ROLL_LOOP_MS = 1100  # extra settle time per full lap, so a wheel with more laps spins visibly
+DIGIT_ROLL_LOOPS = [3, 2, 1]  # extra laps for the rightmost, then second-rightmost digit; 0 beyond
+DIGIT_ROLL_MAGNITUDE_STEP = 0.15  # extra roll duration per digit, so bigger numbers count up longer
+DIGIT_MASK_FADE = 0.35  # fraction of the digit window that fades out at its top and bottom edges
+DIGIT_MASK_PADDING = 0.3  # extra headroom on the mask window, so the fade clears the glyph itself
 
 SIDE_COLUMN_HEIGHT = (
     NUMBER_SIZE + COL_GAP_Y + LABEL_SIZE + COL_GAP_Y + RANGE_MARGIN_TOP + RANGE_SIZE
@@ -74,9 +82,8 @@ def draw_flame(svg, x, y, size, color):
     )
 
 
-def draw_centered_text(svg, text, center_x, y, font_size, fill, font_weight=500, elem_id=None):
+def draw_centered_text(svg, text, center_x, y, font_size, fill, font_weight=500):
     """Draws a line of text horizontally centered on center_x."""
-    extra = {"id": elem_id} if elem_id else {}
     svg.append(
         draw.Text(
             text,
@@ -84,9 +91,111 @@ def draw_centered_text(svg, text, center_x, y, font_size, fill, font_weight=500,
             y=y,
             font_size=font_size,
             text_anchor="middle",
-            **(TEXT | {"fill": fill, "font_weight": font_weight} | extra),
+            **(TEXT | {"fill": fill, "font_weight": font_weight}),
         )
     )
+
+
+def draw_odometer_digit(
+    svg,
+    digit,
+    position_from_right,
+    duration_scale,
+    cx,
+    y,
+    char_width,
+    digit_height,
+    font_size,
+    fill,
+    font_weight,
+):
+    """Draws a single digit as a wheel that spins up to its final value on load.
+
+    Digits nearer the right take extra full laps before landing, so the wheel
+    reads as spinning faster there, the way a mechanical counter's last digit
+    blurs by while the leading digits barely turn. `duration_scale` stretches
+    the whole roll, so a bigger number takes proportionally longer to settle.
+    """
+    loops = (
+        DIGIT_ROLL_LOOPS[position_from_right] if position_from_right < len(DIGIT_ROLL_LOOPS) else 0
+    )
+    steps = list(range(10)) * loops + list(range(digit + 1))
+
+    mask_height = digit_height * (1 + DIGIT_MASK_PADDING)
+    fade = draw.LinearGradient(cx, y - mask_height / 2, cx, y + mask_height / 2)
+    fade.add_stop(0, "white", opacity=0)
+    fade.add_stop(DIGIT_MASK_FADE, "white", opacity=1)
+    fade.add_stop(1 - DIGIT_MASK_FADE, "white", opacity=1)
+    fade.add_stop(1, "white", opacity=0)
+    mask = draw.Mask()
+    mask.append(
+        draw.Rectangle(cx - char_width / 2, y - mask_height / 2, char_width, mask_height, fill=fade)
+    )
+
+    window = draw.Group(mask=mask)
+    wheel = draw.Group()
+    for row, value in enumerate(steps):
+        wheel.append(
+            draw.Text(
+                str(value),
+                x=cx,
+                y=y + row * digit_height,
+                font_size=font_size,
+                text_anchor="middle",
+                **(TEXT | {"fill": fill, "font_weight": font_weight}),
+            )
+        )
+    if len(steps) > 1:
+        duration_ms = (DIGIT_ROLL_BASE_MS + loops * DIGIT_ROLL_LOOP_MS) * duration_scale
+        wheel.append_anim(
+            draw.AnimateTransform(
+                "translate",
+                f"{duration_ms:.0f}ms",
+                "0 0",
+                to=f"0 {-(len(steps) - 1) * digit_height:.2f}",
+                fill="freeze",
+                calcMode="spline",
+                keySplines="0.33 1 0.68 1",
+                keyTimes="0;1",
+            )
+        )
+    window.append(wheel)
+    svg.append(window)
+
+
+def draw_odometer_number(svg, text, center_x, y, font_size, fill, font_weight=700):
+    """Draws a number as a row of mechanical counter wheels, each spinning up to its digit on load.
+
+    The roll takes proportionally longer for a number with more digits, so
+    counting up to 3,142 visibly takes longer than counting up to 8.
+    """
+    char_width = font_size * DIGIT_WIDTH_RATIO
+    digit_height = font_size * DIGIT_ROLL_HEIGHT_RATIO
+    start_x = center_x - len(text) * char_width / 2
+    total_digits = sum(ch.isdigit() for ch in text)
+    duration_scale = 1 + max(0, total_digits - 1) * DIGIT_ROLL_MAGNITUDE_STEP
+
+    digits_seen = 0
+    for i, ch in enumerate(text):
+        cx = start_x + i * char_width + char_width / 2
+        if ch.isdigit():
+            position_from_right = total_digits - digits_seen - 1
+            draw_odometer_digit(
+                svg,
+                int(ch),
+                position_from_right,
+                duration_scale,
+                cx,
+                y,
+                char_width,
+                digit_height,
+                font_size,
+                fill,
+                font_weight,
+            )
+            digits_seen += 1
+        else:
+            draw_centered_text(svg, ch, cx, y, font_size, fill, font_weight=font_weight)
 
 
 def draw_streak_ring(svg, center_x, center_y, current, longest):
@@ -156,12 +265,10 @@ def draw_streak_ring(svg, center_x, center_y, current, longest):
     draw_flame(svg, center_x, center_y - outer_radius + FLAME_SIZE / 2 - 3, FLAME_SIZE, "#ff8a3d")
 
 
-def draw_stat_column(svg, value, label, date_range, center_x, top_y, elem_id=None):
+def draw_stat_column(svg, value, label, date_range, center_x, top_y):
     """Draws a plain stat column: a big number over its label and date range."""
     y = top_y + NUMBER_SIZE / 2
-    draw_centered_text(
-        svg, value, center_x, y, NUMBER_SIZE, "#e8e8ea", font_weight=700, elem_id=elem_id
-    )
+    draw_odometer_number(svg, value, center_x, y, NUMBER_SIZE, "#e8e8ea", font_weight=700)
 
     y += NUMBER_SIZE / 2 + COL_GAP_Y + LABEL_SIZE / 2
     draw_centered_text(svg, label.upper(), center_x, y, LABEL_SIZE, "#8a8f98", font_weight=600)
@@ -170,11 +277,11 @@ def draw_stat_column(svg, value, label, date_range, center_x, top_y, elem_id=Non
     draw_centered_text(svg, date_range, center_x, y, RANGE_SIZE, "#565d66")
 
 
-def draw_current_streak_column(svg, stats, center_x, top_y, elem_id=None):
+def draw_current_streak_column(svg, stats, center_x, top_y):
     """Draws the current streak column: its progress ring over a label and date range."""
     ring_center_y = top_y + RING_SIZE / 2
     draw_streak_ring(svg, center_x, ring_center_y, stats["current_streak"], stats["longest_streak"])
-    draw_centered_text(
+    draw_odometer_number(
         svg,
         str(stats["current_streak"]),
         center_x,
@@ -182,7 +289,6 @@ def draw_current_streak_column(svg, stats, center_x, top_y, elem_id=None):
         CURRENT_NUMBER_SIZE,
         "#ff8a3d",
         font_weight=700,
-        elem_id=elem_id,
     )
 
     y = top_y + RING_SIZE + RING_MARGIN_BOTTOM + COL_GAP_Y + LABEL_SIZE / 2
@@ -229,9 +335,6 @@ def build_streak_card(user):
     divider2_x = content_x + 2 * col_width
     col3_x = content_x + 2 * col_width + col_width / 2
 
-    uid = uuid.uuid4().hex[:8]
-    total_id, current_id, longest_id = f"total-{uid}", f"current-{uid}", f"longest-{uid}"
-
     draw_stat_column(
         svg,
         f"{stats['total_contributions']:,}",
@@ -239,10 +342,9 @@ def build_streak_card(user):
         stats["total_range"],
         col1_x,
         side_top,
-        elem_id=total_id,
     )
     draw_divider(svg, divider1_x, divider_center_y, DIVIDER_HEIGHT)
-    draw_current_streak_column(svg, stats, col2_x, row_top, elem_id=current_id)
+    draw_current_streak_column(svg, stats, col2_x, row_top)
     draw_divider(svg, divider2_x, divider_center_y, DIVIDER_HEIGHT)
     draw_stat_column(
         svg,
@@ -251,39 +353,6 @@ def build_streak_card(user):
         stats["longest_range"],
         col3_x,
         side_top,
-        elem_id=longest_id,
     )
 
-    svg.append(draw.Raw(_count_up_script(total_id, current_id, longest_id, stats)))
-
     return svg.as_svg()
-
-
-def _count_up_script(total_id, current_id, longest_id, stats):
-    """Returns a script that counts each stat number up from zero on load, like the reference."""
-    return f"""
-<script><![CDATA[
-(function() {{
-  var duration = 1400;
-  var targets = {{
-    "{total_id}": {stats['total_contributions']},
-    "{current_id}": {stats['current_streak']},
-    "{longest_id}": {stats['longest_streak']},
-  }};
-  var els = {{}};
-  for (var id in targets) els[id] = document.getElementById(id);
-  function ease(t) {{ return t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2; }}
-  var start = null;
-  function tick(now) {{
-    if (!start) start = now;
-    var t = Math.min(1, (now - start) / duration);
-    var e = ease(t);
-    for (var id in targets) {{
-      if (els[id]) els[id].textContent = Math.round(targets[id] * e).toLocaleString();
-    }}
-    if (t < 1) requestAnimationFrame(tick);
-  }}
-  requestAnimationFrame(tick);
-}})();
-]]></script>
-"""
