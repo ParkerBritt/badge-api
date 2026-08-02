@@ -13,8 +13,8 @@ RULE_MARGIN_TOP = 10
 RULE_THICKNESS = 1
 
 LABEL_COLOR = "#7d8590"
-RULE_COLOR = "#ffffff"
-RULE_OPACITY = 0.06
+RULE_COLOR = "#7d8590"
+RULE_OPACITY = 0.18
 
 
 def build_divider_card(label, width=WIDTH):
