@@ -19,7 +19,7 @@ with open(_ASCII_ART_PATH, encoding="utf-8") as _f:
 
 # GitHub renders README images at up to ~800px before scaling down, so the
 # card defaults to that width to fill the page without being downscaled.
-CARD_WIDTH = 800
+CARD_WIDTH = 830
 MARGIN = 10
 BORDER_RADIUS = 10
 
