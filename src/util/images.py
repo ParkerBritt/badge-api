@@ -31,6 +31,19 @@ def fetch_capped(url):
         return None
 
 
+def prepare_image(data, width, height):
+    """Returns PNG bytes of an image cropped to fill a width by height box, full sharpness."""
+    image = Image.open(BytesIO(data))
+    if image.width * image.height > MAX_BACKGROUND_PIXELS:
+        raise ValueError(f"image too large: {image.width}x{image.height}")
+
+    image = ImageOps.fit(image.convert("RGB"), (width, height), method=Image.LANCZOS)
+
+    buffer = BytesIO()
+    image.save(buffer, format="PNG")
+    return buffer.getvalue()
+
+
 def prepare_background_image(data, width, height, blur=6, saturation=1.4):
     """Returns PNG bytes of an image cropped, blurred and saturated to sit behind a card.
 

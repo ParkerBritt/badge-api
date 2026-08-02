@@ -10,6 +10,7 @@ from fastapi import FastAPI, Response
 from src.draw.badge import build_standard_badge
 from src.draw.cards.button import build_button_card
 from src.draw.cards.divider import build_divider_card
+from src.draw.cards.image import build_image_card
 from src.draw.cards.languages import build_languages_card
 from src.draw.cards.repo import build_repo_card
 from src.draw.cards.spacer import build_spacer_card
@@ -102,6 +103,11 @@ async def spacer(width: int = 20, height: int = 1):
 @app.get("/divider")
 async def divider(label: str = "", width: int = 830):
     return svg_response(build_divider_card(label=label, width=width))
+
+
+@app.get("/image")
+async def image(image_url: str, width: int = 400, height: int = 120):
+    return svg_response(build_image_card(image_url=image_url, width=width, height=height))
 
 
 @app.get("/repo")
