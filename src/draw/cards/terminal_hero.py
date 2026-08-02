@@ -17,79 +17,32 @@ _ASCII_ART_PATH = os.path.join(os.path.dirname(__file__), "assets", "terminal_he
 with open(_ASCII_ART_PATH, encoding="utf-8") as _f:
     DEFAULT_ASCII_ART = _f.read()
 
+# Card frame
 # GitHub renders README images at up to ~800px before scaling down, so the
 # card defaults to that width to fill the page without being downscaled.
 CARD_WIDTH = 830
+CONTENT_HEIGHT = 310
 MARGIN = 10
 BORDER_RADIUS = 10
 
-UPTIME_START_DATE = date(2021, 9, 20)
-
-HEADER_HEIGHT = 32
-DOT_RADIUS = 5
-DOT_GAP = 16
-DOT_PADDING_X = 14
-TITLE_GAP = 10
-TITLE_SIZE = 12
-
-CONTENT_PADDING_TOP = 22
-CONTENT_PADDING_X = 28
-CONTENT_HEIGHT = 310
-
-PROMPT_SIZE = 14
-PROMPT_ROW_HEIGHT = 24
-PROMPT_MARGIN_BOTTOM = 10
-
-BAR_CHARS = 20
-
-INFO_PANEL_OFFSET_X = 40
-INFO_PANEL_OFFSET_Y = 0
-
-ASCII_PANEL_OFFSET_X = 0
-ASCII_PANEL_OFFSET_Y = 5
-
-ASCII_CELL_WIDTH = 1.9
-ASCII_CELL_HEIGHT = 3.1
-ASCII_SUPERSAMPLE = 6
-ASCII_GAP = 26
-ASCII_REVEAL_DURATION = 0.6
-
-# How solid each portrait character reads, densest glyph to faintest.
-ASCII_DENSITY = {"●": 1.0, "◉": 0.82, "◎": 0.5, "○": 0.32, "·": 0.16}
-ASCII_DEFAULT_DENSITY = 0.3
-
-NAME_SIZE = 16
-DIVIDER_WIDTH = 168
-DIVIDER_DASH_LENGTH = 6
-DIVIDER_DASH_GAP = 3
-DIVIDER_MARGIN_TOP = 12
-DIVIDER_MARGIN_BOTTOM = 20
-INFO_ROW_HEIGHT = 30
-INFO_LABEL_WIDTH = 68
-INFO_ICON_SIZE = 13
-INFO_GAP = 8
-INFO_FONT_SIZE = PROMPT_SIZE + 1
-SWATCH_WIDTH = 22
-SWATCH_HEIGHT = 11
-SWATCH_MARGIN_TOP = 0
-
-CURSOR_BLINK = "cursorBlink 1s step-end infinite"
-
-# Google Fonts links don't load when a card is embedded as an <img>, so this
-# sticks to the same system monospace stack every other card uses.
-FONT_MONO = "Liberation Mono,Consolas,Menlo,Monaco,DejaVu Sans Mono,Courier New,monospace"
-
+# Colors
 BACKGROUND_COLOR = STYLE["background"]
-
 ORANGE = "#f78166"
 BLUE = "#58a6ff"
 DIM = "#7d8590"
 TEXT_COLOR = "#e6edf3"
 
-SWATCH_ROWS = [
-    ["#0d1117", "#f85149", "#3fb950", "#e3b341", "#58a6ff", "#bc8cff", "#39c5cf", "#e6edf3"],
-    ["#484f58", "#ffa198", "#56d364", "#f2cc60", "#79c0ff", "#d2a8ff", "#56d4dd", "#f0f6fc"],
-]
+# Typography
+# Google Fonts links don't load when a card is embedded as an <img>, so this
+# sticks to the same system monospace stack every other card uses.
+FONT_MONO = "Liberation Mono,Consolas,Menlo,Monaco,DejaVu Sans Mono,Courier New,monospace"
+TITLE_SIZE = 12
+PROMPT_SIZE = 14
+NAME_SIZE = 16
+INFO_FONT_SIZE = PROMPT_SIZE + 1
+
+# Displayed data
+UPTIME_START_DATE = date(2021, 9, 20)
 
 INFO_ROWS = [
     ("user-cog", "Role"),
@@ -97,6 +50,66 @@ INFO_ROWS = [
     ("clock", "Uptime"),
     ("mail", "Contact"),
 ]
+
+SWATCH_ROWS = [
+    ["#0d1117", "#f85149", "#3fb950", "#e3b341", "#58a6ff", "#bc8cff", "#39c5cf", "#e6edf3"],
+    ["#484f58", "#ffa198", "#56d364", "#f2cc60", "#79c0ff", "#d2a8ff", "#56d4dd", "#f0f6fc"],
+]
+
+# Title bar
+HEADER_HEIGHT = 32
+DOT_RADIUS = 5
+DOT_GAP = 16
+DOT_PADDING_X = 14
+TITLE_GAP = 10
+
+# Content area
+CONTENT_PADDING_TOP = 22
+CONTENT_PADDING_X = 28
+
+# Command prompt
+PROMPT_ROW_HEIGHT = 24
+PROMPT_MARGIN_BOTTOM = 10
+
+# Loading bar
+BAR_CHARS = 20
+
+# Panel layout
+INFO_PANEL_OFFSET_X = 40
+INFO_PANEL_OFFSET_Y = 0
+
+ASCII_PANEL_OFFSET_X = 0
+ASCII_PANEL_OFFSET_Y = 5
+
+ASCII_GAP = 26
+
+# ASCII portrait
+ASCII_CELL_WIDTH = 1.9
+ASCII_CELL_HEIGHT = 3.1
+ASCII_SUPERSAMPLE = 6
+ASCII_REVEAL_DURATION = 0.6
+
+# How solid each portrait character reads, densest glyph to faintest.
+ASCII_DENSITY = {"●": 1.0, "◉": 0.82, "◎": 0.5, "○": 0.32, "·": 0.16}
+ASCII_DEFAULT_DENSITY = 0.3
+
+# Info panel
+DIVIDER_WIDTH = 168
+DIVIDER_DASH_LENGTH = 6
+DIVIDER_DASH_GAP = 3
+DIVIDER_MARGIN_TOP = 12
+DIVIDER_MARGIN_BOTTOM = 20
+INFO_ROW_HEIGHT = 30
+INFO_LABEL_WIDTH = 68
+INFO_VALUE_OFFSET = 14
+INFO_ICON_SIZE = 13
+INFO_GAP = 8
+SWATCH_WIDTH = 22
+SWATCH_HEIGHT = 11
+SWATCH_MARGIN_TOP = 0
+
+# Cursor animation
+CURSOR_BLINK = "cursorBlink 1s step-end infinite"
 
 
 def _format_uptime(start_date):
@@ -436,7 +449,7 @@ def draw_info_row(svg, icon, label, value, x, y, delay):
         )
     )
     label_x = x + INFO_ICON_SIZE + INFO_GAP
-    value_x = label_x + INFO_LABEL_WIDTH
+    value_x = label_x + INFO_LABEL_WIDTH + INFO_VALUE_OFFSET
     _mono_text(row, label, label_x, y, INFO_FONT_SIZE, fill=ORANGE, weight=500)
     _mono_text_dimmed(row, value, value_x, y, INFO_FONT_SIZE, weight=500)
     _fade_up(svg, row, delay)
