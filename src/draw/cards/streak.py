@@ -5,10 +5,10 @@ import math
 import drawsvg as draw
 
 from src.draw.shapes import card_clip, draw_glow, new_card
-from src.draw.theme import TEXT
+from src.draw.theme import STYLE, TEXT
 from src.util import github
 
-CARD_WIDTH = 421
+CARD_WIDTH = STYLE["card_width"]
 PADDING_X = 24
 PADDING_Y = 20
 COL_GAP_Y = 6

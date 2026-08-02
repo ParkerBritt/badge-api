@@ -7,6 +7,7 @@ FONT_FAMILY = (
 )
 
 STYLE = dict(
+    card_width=421,
     background="#12161c",
     border="#262629",
     border_width=1,

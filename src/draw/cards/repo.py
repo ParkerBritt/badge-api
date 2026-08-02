@@ -10,7 +10,7 @@ from src.util.images import fetch_capped, prepare_background_image
 from src.util.languages import LANGUAGE_COLORS
 from src.util.text import elide_lines, get_char_width
 
-CARD_WIDTH = 421
+CARD_WIDTH = STYLE["card_width"]
 CARD_HEIGHT = 120
 
 # SimpleIcons names for languages GitHub spells differently.

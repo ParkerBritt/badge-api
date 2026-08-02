@@ -9,7 +9,7 @@ from src.util import github
 from src.util.languages import LANGUAGE_COLORS
 from src.util.text import get_char_width
 
-CARD_WIDTH = 421
+CARD_WIDTH = STYLE["card_width"]
 PADDING_X = 24
 PADDING_Y = 18
 TITLE_SIZE = 15
