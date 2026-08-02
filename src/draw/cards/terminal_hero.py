@@ -1,6 +1,8 @@
 """Draws the terminal-styled hero card for the top of a README."""
 
 import os
+import re
+from datetime import date
 from io import BytesIO
 
 import drawsvg as draw
@@ -20,6 +22,8 @@ with open(_ASCII_ART_PATH, encoding="utf-8") as _f:
 CARD_WIDTH = 800
 MARGIN = 10
 BORDER_RADIUS = 10
+
+UPTIME_START_DATE = date(2021, 9, 20)
 
 HEADER_HEIGHT = 32
 DOT_RADIUS = 5
@@ -95,6 +99,17 @@ INFO_ROWS = [
 ]
 
 
+def _format_uptime(start_date):
+    """Returns elapsed time since `start_date` as years and days, with a dim VFX tag, e.g. "4y 316d {VFX}"."""
+    today = date.today()
+    years = today.year - start_date.year
+    if (today.month, today.day) < (start_date.month, start_date.day):
+        years -= 1
+    anniversary = start_date.replace(year=start_date.year + years)
+    days = (today - anniversary).days
+    return f"{years}y {days}d {{(VFX)}}"
+
+
 def _mono_text(svg, text, x, y, size, fill=TEXT_COLOR, weight=500, anim=None):
     svg.append(
         draw.Text(
@@ -109,6 +124,27 @@ def _mono_text(svg, text, x, y, size, fill=TEXT_COLOR, weight=500, anim=None):
             style=f"animation:{anim}" if anim else None,
         )
     )
+
+
+def _mono_text_dimmed(svg, text, x, y, size, fill=TEXT_COLOR, weight=500):
+    """Draws monospace text where `{...}` segments render dim, e.g. "4y 316d {VFX}" dims "VFX"."""
+    node = draw.Text(
+        "",
+        x=x,
+        y=y,
+        font_size=size,
+        font_family=FONT_MONO,
+        font_weight=weight,
+        dominant_baseline="central",
+    )
+    for part in re.split(r"(\{[^}]*\})", text):
+        if not part:
+            continue
+        if part[0] == "{" and part[-1] == "}":
+            node.append(draw.TSpan(part[1:-1], fill=DIM))
+        else:
+            node.append(draw.TSpan(part, fill=fill))
+    svg.append(node)
 
 
 def _fade_up(svg, group, delay, duration=0.4):
@@ -400,8 +436,9 @@ def draw_info_row(svg, icon, label, value, x, y, delay):
         )
     )
     label_x = x + INFO_ICON_SIZE + INFO_GAP
+    value_x = label_x + INFO_LABEL_WIDTH
     _mono_text(row, label, label_x, y, INFO_FONT_SIZE, fill=ORANGE, weight=500)
-    _mono_text(row, value, label_x + INFO_LABEL_WIDTH, y, INFO_FONT_SIZE, weight=500)
+    _mono_text_dimmed(row, value, value_x, y, INFO_FONT_SIZE, weight=500)
     _fade_up(svg, row, delay)
 
 
@@ -489,7 +526,7 @@ def build_terminal_hero_card(
     username="github",
     role="Pipeline TD",
     stack="Houdini · USD · Python · C++",
-    uptime="5y (VFX)",
+    uptime=None,
     contact="parker@parkerbritt.com",
     terminal_title="parker-b@github: ~",
     command="fetch --github",
@@ -499,6 +536,8 @@ def build_terminal_hero_card(
     ascii_offset_y=ASCII_PANEL_OFFSET_Y,
 ):
     """Returns the SVG for a terminal styled hero card introducing a README's author."""
+    if uptime is None:
+        uptime = _format_uptime(UPTIME_START_DATE)
     lines = ascii_art.strip("\n").split("\n")
 
     height = HEADER_HEIGHT + CONTENT_HEIGHT
