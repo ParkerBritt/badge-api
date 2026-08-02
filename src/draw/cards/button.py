@@ -6,7 +6,7 @@ from src.draw.shapes import get_drop_shadow
 from src.draw.theme import STYLE, TEXT
 from src.util.text import get_char_width
 
-HEIGHT = 30
+HEIGHT = 29
 FONT_SIZE = 13
 BORDER_RADIUS = 10
 MARGIN_X = 11
