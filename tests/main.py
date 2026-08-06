@@ -1,5 +1,6 @@
 import requests
 
+
 def test_get_response():
     url = "https://parkerbritt.com/badge?label=FastAPI&icon=fastapi&color=009688"
     expected_response = """
@@ -56,4 +57,4 @@ def test_get_response():
 </svg>
 """
     response = requests.get(url)
-    assert response.text.strip()==expected_response.strip()
+    assert response.text.strip() == expected_response.strip()

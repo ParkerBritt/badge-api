@@ -219,6 +219,17 @@ def fit_ascii_art(lines, box_width=theme.ASCII_BOX_WIDTH, box_height=theme.ASCII
     return font_size, grid_width * font_size, grid_height * font_size
 
 
+ASCII_CLASS = "art"
+
+
+def ascii_style(font_size):
+    """Returns the stylesheet the art's lines share, so no line repeats the font stack."""
+    return (
+        f"<style>.{ASCII_CLASS}{{font-family:{theme.FONT_MONO};font-size:{font_size:.3f}px;"
+        f"fill:{theme.TEXT_COLOR};dominant-baseline:central}}</style>"
+    )
+
+
 def draw_ascii_art(
     svg,
     art,
@@ -228,10 +239,14 @@ def draw_ascii_art(
     box_width=theme.ASCII_BOX_WIDTH,
     box_height=theme.ASCII_BOX_HEIGHT,
 ):
-    """Draws ASCII art as literal characters, wiping in top to bottom like it's printing out.
+    """Draws ASCII art as the characters it was written with, wiping in top to bottom.
 
     The art fills the box whatever its character grid measures, so the layout
     around it never has to move.
+
+    Note: the characters go out untouched, since art from someone else's repo
+    can use any charset it likes and only they know what it is meant to look
+    like. That leaves how it renders down to the fonts a reader has.
     """
     lines = art.strip("\n").split("\n")
     if not any(line.strip() for line in lines):
@@ -244,23 +259,19 @@ def draw_ascii_art(
     line_height = font_size * theme.ASCII_LINE_HEIGHT
     advance = get_char_width("0", font_size)
 
+    svg.append(draw.Raw(ascii_style(font_size)))
     reveal = wipe_reveal_down(svg, x, y, box_width, box_height, delay, theme.ASCII_REVEAL_DURATION)
     for row, line in enumerate(lines):
         line = line.rstrip()
         if not line:
             continue
-        text = draw.Text(
-            line,
-            x=art_x,
-            y=art_y + (row + 0.5) * line_height,
-            font_size=font_size,
-            font_family=theme.FONT_MONO,
-            fill=theme.TEXT_COLOR,
-            dominant_baseline="central",
-        )
+        text = draw.Text(line, x=art_x, y=art_y + (row + 0.5) * line_height, font_size=font_size)
+        # The shared look lives in the stylesheet, so no line repeats the font stack.
+        text.args.pop("font-size", None)
+        text.args["class"] = ASCII_CLASS
         # Held to our own grid so the art measures the same in every renderer.
         text.args["xml:space"] = "preserve"
-        text.args["textLength"] = len(line) * advance
+        text.args["textLength"] = round(len(line) * advance, 3)
         text.args["lengthAdjust"] = "spacing"
         reveal.append(text)
 

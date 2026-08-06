@@ -45,9 +45,7 @@ def test_reads_a_full_config():
     with with_config(document):
         config = load_config("http://x")
     assert config["greeting"] == "Holaa, soy Dani"
-    assert config["rows"] == [
-        InfoRow("globe", "Site", "graphicsjournal.com", ROW_COLORS["green"])
-    ]
+    assert config["rows"] == [InfoRow("globe", "Site", "graphicsjournal.com", ROW_COLORS["green"])]
 
 
 def test_unreadable_config_falls_back_to_defaults():

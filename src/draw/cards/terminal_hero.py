@@ -2,24 +2,39 @@
 
 import os
 from datetime import date
+from io import BytesIO
+
+import drawsvg as draw
+from PIL import Image, ImageDraw
 
 from src.draw.cards.terminal import theme
 from src.draw.cards.terminal.components import (
     InfoRow,
     card_origin,
-    draw_ascii_art,
     draw_info_panel,
     draw_loading_bar,
     draw_prompt,
     draw_title_bar,
     new_terminal_card,
 )
+from src.draw.cards.terminal.primitives import wipe_reveal_down
 
 _ASCII_ART_PATH = os.path.join(os.path.dirname(__file__), "assets", "terminal_hero_ascii.txt")
 with open(_ASCII_ART_PATH, encoding="utf-8") as _f:
     DEFAULT_ASCII_ART = _f.read()
 
 CONTENT_HEIGHT = 310
+
+# Portrait
+# The cell each character occupies, taller than it is wide like a terminal's.
+ASCII_CELL_WIDTH = 1.9
+ASCII_CELL_HEIGHT = 3.1
+# Dots are drawn this many times over and shrunk back down, so they anti-alias smoothly.
+ASCII_SUPERSAMPLE = 6
+
+# How solid each portrait character reads, densest glyph to faintest.
+ASCII_DENSITY = {"●": 1.0, "◉": 0.82, "◎": 0.5, "○": 0.32, "·": 0.16}
+ASCII_DEFAULT_DENSITY = 0.3
 
 # Displayed data
 UPTIME_START_DATE = date(2021, 9, 20)
@@ -70,6 +85,56 @@ def _format_uptime(start_date):
     anniversary = start_date.replace(year=start_date.year + years)
     days = (today - anniversary).days
     return f"{years}y {days}d {{(VFX)}}"
+
+
+def render_ascii_portrait(lines):
+    """Bakes the portrait to a PNG of dots sized by each character's density, like a halftone print.
+
+    e.g. "●" -> a dot filling its cell, "·" -> a faint dot a third that wide
+
+    Why a raster: a cell here is about two pixels across, small enough that
+    hinting and font substitution would have more say over the picture than the
+    art does. Baked, it looks the same in every browser.
+    """
+    cols = max(len(line) for line in lines)
+    rows = len(lines)
+    cell_w = ASCII_CELL_WIDTH * ASCII_SUPERSAMPLE
+    cell_h = ASCII_CELL_HEIGHT * ASCII_SUPERSAMPLE
+
+    raster = Image.new("RGBA", (round(cols * cell_w), round(rows * cell_h)), (0, 0, 0, 0))
+    artist = ImageDraw.Draw(raster)
+
+    for row, line in enumerate(lines):
+        for col, char in enumerate(line):
+            if char == " ":
+                continue
+            density = ASCII_DENSITY.get(char, ASCII_DEFAULT_DENSITY)
+            cx = col * cell_w + cell_w / 2
+            cy = row * cell_h + cell_h / 2
+            # A denser character is both a wider dot and a more opaque one.
+            radius = min(cell_w, cell_h) / 2 * (0.35 + 0.65 * density)
+            alpha = round(255 * (0.25 + 0.75 * density))
+            artist.ellipse(
+                (cx - radius, cy - radius, cx + radius, cy + radius),
+                fill=(230, 237, 243, alpha),
+            )
+
+    width, height = cols * ASCII_CELL_WIDTH, rows * ASCII_CELL_HEIGHT
+    raster = raster.resize((round(width), round(height)), Image.LANCZOS)
+
+    buffer = BytesIO()
+    raster.save(buffer, format="PNG")
+    return buffer.getvalue(), width, height
+
+
+def draw_ascii_portrait(svg, art, x, y, delay):
+    """Draws the portrait, wiping in top to bottom like it's printing out, returning its size."""
+    lines = art.strip("\n").split("\n")
+    data, width, height = render_ascii_portrait(lines)
+
+    reveal = wipe_reveal_down(svg, x, y, width, height, delay, theme.ASCII_REVEAL_DURATION)
+    reveal.append(draw.Image(x, y, width, height, data=data, embed=True, mime_type="image/png"))
+    return width, height
 
 
 def build_terminal_hero_card(
@@ -123,10 +188,10 @@ def build_terminal_hero_card(
     # ASCII portrait
     ascii_x = content_x + ascii_offset_x
     ascii_y = row_top + ascii_offset_y
-    draw_ascii_art(svg, ascii_art, ascii_x, ascii_y, result_delay + 0.4)
+    ascii_width, _ = draw_ascii_portrait(svg, ascii_art, ascii_x, ascii_y, result_delay + 0.4)
 
     # Info panel
-    info_x = ascii_x + theme.ASCII_BOX_WIDTH + theme.ASCII_GAP + info_offset_x
+    info_x = ascii_x + ascii_width + theme.ASCII_GAP + info_offset_x
     info_y = row_top + info_offset_y
     draw_info_panel(
         svg,

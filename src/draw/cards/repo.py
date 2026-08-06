@@ -156,9 +156,7 @@ def build_repo_card(user, repo, title=None, image_url=None):
             }
         )
 
-    info_x = draw_info_row(
-        svg, info_items, card_x + width - padding, info_y, subtitle_font_size
-    )
+    info_x = draw_info_row(svg, info_items, card_x + width - padding, info_y, subtitle_font_size)
 
     # Title, on the info row and shrunk to fit whatever space the info items left
     title_text = title or repo
