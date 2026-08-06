@@ -15,8 +15,10 @@ from src.draw.cards.languages import build_languages_card
 from src.draw.cards.repo import build_repo_card
 from src.draw.cards.spacer import build_spacer_card
 from src.draw.cards.streak import build_streak_card
+from src.draw.cards.terminal_dani import build_terminal_dani_card
 from src.draw.cards.terminal_hero import build_terminal_hero_card
 from src.util.github import DEFAULT_USER
+from src.util.remote_config import is_allowed_source
 
 load_dotenv("conf.env")
 
@@ -165,3 +167,14 @@ async def terminal_hero(
     }
     svg = build_terminal_hero_card(**{k: v for k, v in kwargs.items() if v is not None})
     return svg_response(svg)
+
+
+@app.get("/terminal_dani")
+async def terminal_dani(config_url: Optional[str] = None, ascii_url: Optional[str] = None):
+    # These are fetched by the server and drawn into the reply, so the host is checked.
+    kwargs = {}
+    if config_url and is_allowed_source(config_url):
+        kwargs["config_source"] = config_url
+    if ascii_url and is_allowed_source(ascii_url):
+        kwargs["ascii_source"] = ascii_url
+    return svg_response(build_terminal_dani_card(**kwargs), max_age=HOUR)

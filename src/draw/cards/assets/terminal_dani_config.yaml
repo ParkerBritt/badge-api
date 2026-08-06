@@ -1,0 +1,29 @@
+# A local stand-in for the config Dani publishes at
+# https://github.com/DanielaHz/DanielaHz/terminal_config.yaml
+name: Dani
+username: DanielaHz
+greeting: Holaa, soy Dani
+terminal_title: "dani@github: ~"
+command: fetch --github
+
+rows:
+  - icon: wrench
+    label: Focus
+    color: purple
+    value: Building tools that apply computer graphics concepts in any industry
+  - icon: graduation-cap
+    label: Study
+    color: blue
+    value: MSc Computer Animation and Visual Effects, Bournemouth University, Merit
+  - icon: globe
+    label: Site
+    color: "#D9027D"
+    value: graphicsjournal.com
+  - icon: quote
+    label: Motto
+    color: yellow
+    value: I want to touch my limits, not imagine them
+  - icon: bot
+    label: Now
+    color: red
+    value: Robotics simulation and LLM integration
