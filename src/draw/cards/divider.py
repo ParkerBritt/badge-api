@@ -4,7 +4,7 @@ import drawsvg as draw
 
 from src.draw.theme import FONT_FAMILY
 
-WIDTH = 830
+LINE_LENGTH = 500
 FONT_SIZE = 12
 LABEL_LINE_HEIGHT = 13
 LETTER_SPACING = 2.5
@@ -17,11 +17,14 @@ RULE_COLOR = "#7d8590"
 RULE_OPACITY = 0.18
 
 
-def build_divider_card(label, width=WIDTH):
-    """Returns the SVG for a minimal section divider, e.g. "01 — About Me" over a faint rule."""
+def build_divider_card(label, line_length=LINE_LENGTH):
+    """Returns the SVG for a minimal section divider, e.g. "01 — About Me" over a faint rule.
+
+    The rule runs the full width of the card, so `line_length` sizes both.
+    """
     height = MARGIN_TOP + LABEL_LINE_HEIGHT + RULE_MARGIN_TOP + RULE_THICKNESS
 
-    svg = draw.Drawing(width, height, origin=(0, 0))
+    svg = draw.Drawing(line_length, height, origin=(0, 0))
 
     svg.append(
         draw.Text(
@@ -41,7 +44,7 @@ def build_divider_card(label, width=WIDTH):
         draw.Rectangle(
             0,
             MARGIN_TOP + LABEL_LINE_HEIGHT + RULE_MARGIN_TOP,
-            width,
+            line_length,
             RULE_THICKNESS,
             fill=RULE_COLOR,
             fill_opacity=RULE_OPACITY,

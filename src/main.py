@@ -103,8 +103,8 @@ async def spacer(width: int = 20, height: int = 1):
 
 
 @app.get("/divider")
-async def divider(label: str = "", width: int = 830):
-    return svg_response(build_divider_card(label=label, width=width))
+async def divider(label: str = "", line_length: int = 500):
+    return svg_response(build_divider_card(label=label, line_length=line_length))
 
 
 @app.get("/image")
