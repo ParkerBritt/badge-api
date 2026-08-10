@@ -15,10 +15,14 @@ SHADOW_BLUR = 3
 SHADOW_OPACITY = 0.4
 
 
-def build_button_card(label):
-    """Returns the SVG for a button shaped card showing a single line of centered text."""
+def build_button_card(label, color=None):
+    """Returns the SVG for a button shaped card showing a single line of centered text.
+
+    `color` is a hex string (e.g. `"FF4713"`)
+    """
     padding = STYLE["padding"]
     width = int(get_char_width(label, FONT_SIZE) + padding * 2)
+    background = f"#{color}" if color else STYLE["background"]
 
     svg = draw.Drawing(width + MARGIN_X * 2, HEIGHT + MARGIN_Y * 2, origin=(0, 0))
 
@@ -28,7 +32,7 @@ def build_button_card(label):
             MARGIN_Y,
             width,
             HEIGHT,
-            fill=STYLE["background"],
+            fill=background,
             rx=BORDER_RADIUS,
             stroke=STYLE["border"],
             stroke_width=STYLE["border_width"],

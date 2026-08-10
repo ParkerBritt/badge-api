@@ -93,8 +93,8 @@ async def badge(label: str = "", icon: str = "", color: str = "FF4713"):
 
 
 @app.get("/button")
-async def button(label: str = ""):
-    return svg_response(build_button_card(label=label))
+async def button(label: str = "", color: Optional[str] = None):
+    return svg_response(build_button_card(label=label, color=color))
 
 
 @app.get("/spacer")
