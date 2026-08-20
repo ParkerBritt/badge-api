@@ -31,7 +31,7 @@ GLOW_RADIUS = 200
 
 # SimpleIcons names for languages GitHub spells differently, or where the
 # obvious slug collides with an unrelated brand (e.g. "shell" is a gas company).
-ICON_NAMES = {"c++": "cplusplus", "shell": "gnubash"}
+ICON_NAMES = {"c++": "cplusplus", "shell": "gnubash", "qml": "qt"}
 
 
 def draw_language_bar(svg, languages, x, y, width):
