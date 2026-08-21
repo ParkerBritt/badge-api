@@ -1,7 +1,8 @@
 from unittest import mock
 
 from src.util import remote_config
-from src.util.remote_config import MAX_CACHE_ENTRIES, fetch_text, is_allowed_source
+from src.util.images import is_allowed_source
+from src.util.remote_config import MAX_CACHE_ENTRIES, fetch_text
 
 
 def test_published_config_hosts_are_allowed():

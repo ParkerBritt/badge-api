@@ -5,7 +5,7 @@ from typing import Optional
 
 import httpx
 from dotenv import load_dotenv
-from fastapi import FastAPI, Response
+from fastapi import FastAPI, HTTPException, Response
 
 from src.draw.badge import build_standard_badge
 from src.draw.cards.button import build_button_card
@@ -18,7 +18,7 @@ from src.draw.cards.streak import build_streak_card
 from src.draw.cards.terminal_dani import build_terminal_dani_card
 from src.draw.cards.terminal_hero import build_terminal_hero_card
 from src.util.github import DEFAULT_USER
-from src.util.remote_config import is_allowed_source
+from src.util.images import is_allowed_source
 
 load_dotenv("conf.env")
 
@@ -109,6 +109,9 @@ async def divider(label: str = "", line_length: int = 500):
 
 @app.get("/image")
 async def image(image_url: str, width: int = 400, height: int = 120):
+    # The image is fetched by the server and drawn into the reply, so the host is checked.
+    if not is_allowed_source(image_url):
+        raise HTTPException(status_code=400, detail="image_url host is not allowed")
     return svg_response(build_image_card(image_url=image_url, width=width, height=height))
 
 
@@ -119,6 +122,10 @@ async def repo(
     title: Optional[str] = None,
     image_url: Optional[str] = None,
 ):
+    # A background from a host the server won't fetch falls back to the repo's own thumbnail.
+    if image_url and not is_allowed_source(image_url):
+        image_url = None
+
     svg = build_repo_card(
         user=user or DEFAULT_USER,
         repo=repo,

@@ -1,7 +1,6 @@
 """Reads card settings a user publishes in their own repo."""
 
 import time
-from urllib.parse import urlparse
 
 import yaml
 
@@ -16,30 +15,12 @@ FAILURE_TTL = 60
 # URLs arrive with requests, so the cache has a ceiling.
 MAX_CACHE_ENTRIES = 64
 
-# The only hosts a request may point a card at, since a fetch runs with this server's reach.
-ALLOWED_HOSTS = frozenset(
-    {
-        "raw.githubusercontent.com",
-        "gist.githubusercontent.com",
-    }
-)
-
 _cache = {}
 
 
 def is_remote(source):
     """Returns whether a source is a URL rather than a path on disk."""
     return source.startswith(("http://", "https://"))
-
-
-def is_allowed_source(source):
-    """Returns whether a caller-supplied URL is one a card may be pointed at.
-
-    e.g. "https://raw.githubusercontent.com/me/me/main/card.yaml" is allowed,
-    while "http://169.254.169.254/latest/meta-data" is not.
-    """
-    parsed = urlparse(source or "")
-    return parsed.scheme == "https" and parsed.hostname in ALLOWED_HOSTS
 
 
 def fetch_text(source, ttl=CACHE_TTL):
