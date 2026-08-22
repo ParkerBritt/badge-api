@@ -2,7 +2,7 @@ from unittest import mock
 
 import requests
 
-from src.util.images import MAX_BACKGROUND_BYTES, fetch_capped
+from src.util.images import MAX_BACKGROUND_BYTES, fetch_capped, is_allowed_source
 
 ALLOWED_URL = "https://raw.githubusercontent.com/me/me/main/card.png"
 
@@ -71,3 +71,35 @@ def test_gives_up_on_a_redirect_loop():
     loop = fake_redirect(ALLOWED_URL)
     with mock.patch("src.util.images.requests.get", return_value=loop):
         assert fetch_capped(ALLOWED_URL) is None
+
+
+def test_allows_a_user_attachment():
+    url = "https://github.com/user-attachments/assets/0c0b427b-b0b9-41fe"
+    assert is_allowed_source(url)
+
+
+def test_refuses_the_rest_of_github():
+    assert not is_allowed_source("https://github.com/ParkerBritt/badge-api/settings")
+
+
+def test_allows_the_bucket_a_user_attachment_redirects_to():
+    url = "https://github-production-user-asset-6210df.s3.amazonaws.com/77124738/389315218.png"
+    assert is_allowed_source(url)
+
+
+def test_refuses_an_unrelated_bucket():
+    assert not is_allowed_source("https://someone-elses-bucket.s3.amazonaws.com/payload.png")
+
+
+def test_refuses_a_path_that_walks_out_of_its_corner():
+    url = "https://github.com/user-attachments/../../ParkerBritt/private/secret"
+    assert not is_allowed_source(url)
+
+
+def test_refuses_an_encoded_path_that_walks_out_of_its_corner():
+    url = "https://github.com/user-attachments/%2e%2e/ParkerBritt/secret"
+    assert not is_allowed_source(url)
+
+
+def test_refuses_a_lookalike_host():
+    assert not is_allowed_source("https://github.com.evil.com/user-attachments/x")

@@ -1,5 +1,6 @@
 from io import BytesIO
-from urllib.parse import urljoin, urlparse
+from posixpath import normpath
+from urllib.parse import unquote, urljoin, urlparse
 
 import requests
 from PIL import Image, ImageEnhance, ImageFilter, ImageOps
@@ -13,17 +14,43 @@ MAX_BACKGROUND_PIXELS = 50_000_000
 BACKGROUND_DOWNSCALE = 4
 
 # The only hosts a fetch may be pointed at, since a request runs with this server's reach.
-ALLOWED_HOSTS = frozenset(
-    {
-        "raw.githubusercontent.com",
-        "gist.githubusercontent.com",
-        "user-images.githubusercontent.com",
-        "avatars.githubusercontent.com",
-    }
-)
+# Each maps to the path prefix it is held to, and an empty prefix opens the whole host.
+ALLOWED_HOSTS = {
+    "raw.githubusercontent.com": "",
+    "gist.githubusercontent.com": "",
+    "user-images.githubusercontent.com": "",
+    "avatars.githubusercontent.com": "",
+    # github.com serves far more than assets, so only this one corner of it is allowed.
+    "github.com": "/user-attachments/",
+}
 
-# How many redirects a fetch follows, with every hop held to ALLOWED_HOSTS.
+# The signed bucket a user-attachments link redirects to. GitHub numbers these buckets,
+# so the name is matched at both ends rather than in full.
+ASSET_BUCKET_PREFIX = "github-production-user-asset"
+ASSET_BUCKET_SUFFIX = ".s3.amazonaws.com"
+
+# How many redirects a fetch follows, with every hop held to the same rules.
 MAX_REDIRECTS = 3
+
+
+def _is_asset_bucket(host):
+    """Returns whether a host is one of GitHub's numbered attachment buckets.
+
+    e.g. "github-production-user-asset-6210df.s3.amazonaws.com"
+    """
+    return host.startswith(ASSET_BUCKET_PREFIX) and host.endswith(ASSET_BUCKET_SUFFIX)
+
+
+def _resolved_path(path):
+    """Returns the path a request actually lands on, with "." and ".." resolved.
+
+    e.g. "/user-attachments/../private" -> "/private"
+
+    Note: the HTTP client resolves these segments before sending, so the prefix in
+    ALLOWED_HOSTS is matched against the resolved path rather than the raw one.
+    """
+    resolved = normpath(unquote(path or "/"))
+    return resolved + "/" if not resolved.endswith("/") and path.endswith("/") else resolved
 
 
 def is_allowed_source(source):
@@ -31,17 +58,25 @@ def is_allowed_source(source):
 
     e.g. "https://raw.githubusercontent.com/me/me/main/card.png" is allowed,
     while "http://169.254.169.254/latest/meta-data" is not.
+
+    Note: a host may be allowed for only part of its paths, so the path counts
+    as much as the host does.
     """
     parsed = urlparse(source or "")
-    return parsed.scheme == "https" and parsed.hostname in ALLOWED_HOSTS
+    if parsed.scheme != "https" or not parsed.hostname:
+        return False
+    if _is_asset_bucket(parsed.hostname):
+        return True
+    prefix = ALLOWED_HOSTS.get(parsed.hostname)
+    return prefix is not None and _resolved_path(parsed.path).startswith(prefix)
 
 
 def fetch_capped(url):
     """Returns the bytes at a URL, or None if it fails or exceeds the size cap.
 
-    Only the hosts in ALLOWED_HOSTS can be reached. Redirects are followed one hop
-    at a time and each new location is checked the same way, so an allowed host
-    can't bounce the request onto a private address.
+    Only a source is_allowed_source accepts can be reached. Redirects are followed
+    one hop at a time and each new location is checked the same way, so an allowed
+    host can't bounce the request onto a private address.
 
     The cap is enforced while streaming, so an oversized image is abandoned partway
     through rather than held in memory in full.
