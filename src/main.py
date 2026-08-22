@@ -1,4 +1,7 @@
-"""The API routes."""
+"""The API routes.
+
+Note: the card routes are plain `def` rather than `async def`, since FastAPI threads them.
+"""
 
 import os
 from typing import Optional
@@ -88,27 +91,27 @@ async def jenkins_badge(job: str = "", build: str = "lastBuild"):
 
 
 @app.get("/badge")
-async def badge(label: str = "", icon: str = "", color: str = "FF4713"):
+def badge(label: str = "", icon: str = "", color: str = "FF4713"):
     return svg_response(build_standard_badge(label=label.upper(), icon=icon, color=color))
 
 
 @app.get("/button")
-async def button(label: str = "", color: Optional[str] = None):
+def button(label: str = "", color: Optional[str] = None):
     return svg_response(build_button_card(label=label, color=color))
 
 
 @app.get("/spacer")
-async def spacer(width: int = 20, height: int = 1):
+def spacer(width: int = 20, height: int = 1):
     return svg_response(build_spacer_card(width=width, height=height))
 
 
 @app.get("/divider")
-async def divider(label: str = "", line_length: int = 500):
+def divider(label: str = "", line_length: int = 500):
     return svg_response(build_divider_card(label=label, line_length=line_length))
 
 
 @app.get("/image")
-async def image(image_url: str, width: int = 400, height: int = 120):
+def image(image_url: str, width: int = 400, height: int = 120):
     # The image is fetched by the server and drawn into the reply, so the host is checked.
     if not is_allowed_source(image_url):
         raise HTTPException(status_code=400, detail="image_url host is not allowed")
@@ -116,7 +119,7 @@ async def image(image_url: str, width: int = 400, height: int = 120):
 
 
 @app.get("/repo")
-async def repo(
+def repo(
     repo: str,
     user: Optional[str] = None,
     title: Optional[str] = None,
@@ -136,19 +139,19 @@ async def repo(
 
 
 @app.get("/languages")
-async def languages(user: Optional[str] = None):
+def languages(user: Optional[str] = None):
     svg = build_languages_card(user or DEFAULT_USER)
     return svg_response(svg)
 
 
 @app.get("/streak")
-async def streak(user: Optional[str] = None):
+def streak(user: Optional[str] = None):
     svg = build_streak_card(user or DEFAULT_USER)
     return svg_response(svg)
 
 
 @app.get("/terminal_hero")
-async def terminal_hero(
+def terminal_hero(
     name: Optional[str] = None,
     username: Optional[str] = None,
     role: Optional[str] = None,
@@ -177,7 +180,7 @@ async def terminal_hero(
 
 
 @app.get("/terminal_dani")
-async def terminal_dani(config_url: Optional[str] = None, ascii_url: Optional[str] = None):
+def terminal_dani(config_url: Optional[str] = None, ascii_url: Optional[str] = None):
     # These are fetched by the server and drawn into the reply, so the host is checked.
     kwargs = {}
     if config_url and is_allowed_source(config_url):
