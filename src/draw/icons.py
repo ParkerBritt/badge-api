@@ -47,6 +47,17 @@ def get_file_icon(icon_name, x=0, y=0, color="white", size=14, center=False, fal
     return get_icon(svg_content, x=x, y=y, color=color, size=size, center=center)
 
 
+def get_named_icon(icon_name, x=0, y=0, color="white", size=14, center=False):
+    """Returns an icon by name, checking the Lucide/custom file set before SimpleIcons brand icons.
+
+    Handy when a name could be either kind, e.g. `"github"` (brand icon) or `"star"`
+    (Lucide icon), and the caller doesn't want to know which.
+    """
+    if find_icon_file(icon_name):
+        return get_file_icon(icon_name, x=x, y=y, color=color, size=size, center=center)
+    return get_simple_icon(icon_name, x=x, y=y, color=color, size=size, center=center)
+
+
 def get_icon(raw_svg, x=0, y=0, color="white", size=14, center=False):
     """Returns the drawable innards of an icon's SVG, recolored and placed at the given spot.
 

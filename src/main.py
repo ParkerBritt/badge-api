@@ -12,6 +12,7 @@ from fastapi import FastAPI, HTTPException, Response
 
 from src.draw.badge import build_standard_badge
 from src.draw.cards.button import BORDER_RADIUS as BUTTON_BORDER_RADIUS
+from src.draw.cards.button import HEIGHT as BUTTON_HEIGHT
 from src.draw.cards.button import build_button_card
 from src.draw.cards.divider import build_divider_card
 from src.draw.cards.image import build_image_card
@@ -99,18 +100,22 @@ def badge(label: str = "", icon: str = "", color: str = "FF4713"):
 @app.get("/button")
 def button(
     label: str = "",
+    icon: Optional[str] = None,
     color: Optional[str] = None,
     border_color: Optional[str] = None,
     text_color: Optional[str] = None,
     border_radius: int = BUTTON_BORDER_RADIUS,
+    height: int = BUTTON_HEIGHT,
 ):
     return svg_response(
         build_button_card(
             label=label,
+            icon=icon,
             color=color,
             border_color=border_color,
             text_color=text_color,
             border_radius=border_radius,
+            height=height,
         )
     )
 
