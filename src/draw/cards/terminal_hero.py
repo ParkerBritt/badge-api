@@ -142,7 +142,7 @@ def build_terminal_hero_card(
     name="Parker-Britt",
     username="github",
     role="Pipeline TD",
-    stack="Houdini · USD · Python · C++",
+    stack="C++ · Python · USD · Houdini",
     uptime=None,
     contact="parker@parkerbritt.com",
     terminal_title="parker-b@github: ~",
