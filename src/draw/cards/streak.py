@@ -297,8 +297,9 @@ def build_streak_card(user, show_dates=False):
     """Returns the SVG for a card showing a user's total, current and longest contribution streaks."""
     stats = github.get_streak_stats(user)
 
+    # Keeps the card the same height either way, so it lines up with the cards beside it.
     row_height = ROW_HEIGHT + (RANGE_ROW_HEIGHT if show_dates else 0)
-    height = int(PADDING_Y * 2 + row_height)
+    height = int(PADDING_Y * 2 + ROW_HEIGHT + RANGE_ROW_HEIGHT)
     svg, card_x, card_y = new_card(CARD_WIDTH, height)
     svg.append(
         draw.Raw(
@@ -321,7 +322,7 @@ def build_streak_card(user, show_dates=False):
     content_x = card_x + PADDING_X
     content_width = CARD_WIDTH - PADDING_X * 2
     col_width = content_width / 3
-    row_top = card_y + PADDING_Y
+    row_top = card_y + PADDING_Y + (ROW_HEIGHT + RANGE_ROW_HEIGHT - row_height) / 2
     divider_center_y = row_top + row_height / 2
     side_top = row_top + (ROW_HEIGHT - SIDE_COLUMN_HEIGHT) / 2
 
