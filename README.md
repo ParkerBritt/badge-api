@@ -101,7 +101,7 @@ https://domain.com/languages
 
 ### streak
 
-Total, current and longest contribution streaks. Takes `user`.
+Total, current and longest contribution streaks. Takes `user`, and `show_dates=true` adds the date range under each stat.
 
 ```
 https://domain.com/streak

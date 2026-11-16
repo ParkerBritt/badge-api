@@ -189,8 +189,8 @@ def languages(user: Optional[str] = None):
 
 
 @app.get("/streak")
-def streak(user: Optional[str] = None):
-    return card_response(build_streak_card, user=user or DEFAULT_USER)
+def streak(user: Optional[str] = None, show_dates: bool = False):
+    return card_response(build_streak_card, user=user or DEFAULT_USER, show_dates=show_dates)
 
 
 @app.get("/terminal_hero")

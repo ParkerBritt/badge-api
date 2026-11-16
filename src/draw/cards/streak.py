@@ -42,19 +42,10 @@ DIGIT_ROLL_MAGNITUDE_STEP = 0.15  # extra roll duration per digit, so bigger num
 DIGIT_MASK_FADE = 0.35  # fraction of the digit window that fades out at its top and bottom edges
 DIGIT_MASK_PADDING = 0.3  # extra headroom on the mask window, so the fade clears the glyph itself
 
-SIDE_COLUMN_HEIGHT = (
-    NUMBER_SIZE + COL_GAP_Y + LABEL_SIZE + COL_GAP_Y + RANGE_MARGIN_TOP + RANGE_SIZE
-)
-CENTER_COLUMN_HEIGHT = (
-    RING_SIZE
-    + RING_MARGIN_BOTTOM
-    + COL_GAP_Y
-    + LABEL_SIZE
-    + COL_GAP_Y
-    + RANGE_MARGIN_TOP
-    + RANGE_SIZE
-)
+SIDE_COLUMN_HEIGHT = NUMBER_SIZE + COL_GAP_Y + LABEL_SIZE
+CENTER_COLUMN_HEIGHT = RING_SIZE + RING_MARGIN_BOTTOM + COL_GAP_Y + LABEL_SIZE
 ROW_HEIGHT = max(SIDE_COLUMN_HEIGHT, CENTER_COLUMN_HEIGHT)
+RANGE_ROW_HEIGHT = COL_GAP_Y + RANGE_MARGIN_TOP + RANGE_SIZE
 
 
 def draw_divider(svg, x, center_y, height):
@@ -265,20 +256,26 @@ def draw_streak_ring(svg, center_x, center_y, current, longest):
     draw_flame(svg, center_x, center_y - outer_radius + FLAME_SIZE / 2 - 3, FLAME_SIZE, "#ff8a3d")
 
 
+def draw_date_range(svg, date_range, center_x, label_y):
+    """Draws a column's date range under its label."""
+    if date_range is None:
+        return
+    y = label_y + LABEL_SIZE / 2 + COL_GAP_Y + RANGE_MARGIN_TOP + RANGE_SIZE / 2
+    draw_centered_text(svg, date_range, center_x, y, RANGE_SIZE, "#565d66")
+
+
 def draw_stat_column(svg, value, label, date_range, center_x, top_y):
-    """Draws a plain stat column: a big number over its label and date range."""
+    """Draws a stat column with a big number over its label and an optional date range."""
     y = top_y + NUMBER_SIZE / 2
     draw_odometer_number(svg, value, center_x, y, NUMBER_SIZE, "#e8e8ea", font_weight=700)
 
     y += NUMBER_SIZE / 2 + COL_GAP_Y + LABEL_SIZE / 2
     draw_centered_text(svg, label.upper(), center_x, y, LABEL_SIZE, "#8a8f98", font_weight=600)
-
-    y += LABEL_SIZE / 2 + COL_GAP_Y + RANGE_MARGIN_TOP + RANGE_SIZE / 2
-    draw_centered_text(svg, date_range, center_x, y, RANGE_SIZE, "#565d66")
+    draw_date_range(svg, date_range, center_x, y)
 
 
-def draw_current_streak_column(svg, stats, center_x, top_y):
-    """Draws the current streak column: its progress ring over a label and date range."""
+def draw_current_streak_column(svg, stats, date_range, center_x, top_y):
+    """Draws the current streak column with its progress ring over a label and an optional date range."""
     ring_center_y = top_y + RING_SIZE / 2
     draw_streak_ring(svg, center_x, ring_center_y, stats["current_streak"], stats["longest_streak"])
     draw_odometer_number(
@@ -293,16 +290,15 @@ def draw_current_streak_column(svg, stats, center_x, top_y):
 
     y = top_y + RING_SIZE + RING_MARGIN_BOTTOM + COL_GAP_Y + LABEL_SIZE / 2
     draw_centered_text(svg, "CURRENT STREAK", center_x, y, LABEL_SIZE, "#c98a56", font_weight=600)
-
-    y += LABEL_SIZE / 2 + COL_GAP_Y + RANGE_MARGIN_TOP + RANGE_SIZE / 2
-    draw_centered_text(svg, stats["current_range"], center_x, y, RANGE_SIZE, "#565d66")
+    draw_date_range(svg, date_range, center_x, y)
 
 
-def build_streak_card(user):
+def build_streak_card(user, show_dates=False):
     """Returns the SVG for a card showing a user's total, current and longest contribution streaks."""
     stats = github.get_streak_stats(user)
 
-    height = int(PADDING_Y * 2 + ROW_HEIGHT)
+    row_height = ROW_HEIGHT + (RANGE_ROW_HEIGHT if show_dates else 0)
+    height = int(PADDING_Y * 2 + row_height)
     svg, card_x, card_y = new_card(CARD_WIDTH, height)
     svg.append(
         draw.Raw(
@@ -326,7 +322,7 @@ def build_streak_card(user):
     content_width = CARD_WIDTH - PADDING_X * 2
     col_width = content_width / 3
     row_top = card_y + PADDING_Y
-    divider_center_y = row_top + ROW_HEIGHT / 2
+    divider_center_y = row_top + row_height / 2
     side_top = row_top + (ROW_HEIGHT - SIDE_COLUMN_HEIGHT) / 2
 
     col1_x = content_x + col_width / 2
@@ -339,18 +335,20 @@ def build_streak_card(user):
         svg,
         f"{stats['total_contributions']:,}",
         "Total Contributions",
-        stats["total_range"],
+        stats["total_range"] if show_dates else None,
         col1_x,
         side_top,
     )
     draw_divider(svg, divider1_x, divider_center_y, DIVIDER_HEIGHT)
-    draw_current_streak_column(svg, stats, col2_x, row_top)
+    draw_current_streak_column(
+        svg, stats, stats["current_range"] if show_dates else None, col2_x, row_top
+    )
     draw_divider(svg, divider2_x, divider_center_y, DIVIDER_HEIGHT)
     draw_stat_column(
         svg,
         str(stats["longest_streak"]),
         "Longest Streak",
-        stats["longest_range"],
+        stats["longest_range"] if show_dates else None,
         col3_x,
         side_top,
     )
