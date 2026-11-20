@@ -23,6 +23,8 @@ RING_STROKE = 8
 RING_GAP = 30  # arc length, in the ring's own units, left open at the bottom
 RING_MARGIN_BOTTOM = 2
 CURRENT_NUMBER_SIZE = 26
+DAYS_SIZE = 9
+DAYS_OFFSET_Y = 9  # shifts the number up and "days" down, so the pair sits centered in the ring
 FLAME_SIZE = 18
 FLAME_PATH = (
     "M12 3q1 4 4 6.5t3 5.5a1 1 0 0 1-14 0 5 5 0 0 1 1-3 1 1 0 0 0 5 0c0-2-1.5-3-1.5-5q0-2 2.5-4"
@@ -282,10 +284,13 @@ def draw_current_streak_column(svg, stats, date_range, center_x, top_y):
         svg,
         str(stats["current_streak"]),
         center_x,
-        ring_center_y,
+        ring_center_y - DAYS_OFFSET_Y / 2,
         CURRENT_NUMBER_SIZE,
         "#ff8a3d",
         font_weight=700,
+    )
+    draw_centered_text(
+        svg, "days", center_x, ring_center_y + DAYS_OFFSET_Y + 2, DAYS_SIZE, "#c98a56"
     )
 
     y = top_y + RING_SIZE + RING_MARGIN_BOTTOM + COL_GAP_Y + LABEL_SIZE / 2
